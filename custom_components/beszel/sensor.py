@@ -43,6 +43,10 @@ from .const import (
     ATTR_DISK_TOTAL_GB,
     ATTR_DISK_USED_GB,
     ATTR_DISK_PERCENT,
+    ATTR_DISK_READ_PS_MB, # Re-added
+    ATTR_DISK_WRITE_PS_MB, # Re-added
+    ATTR_NET_SENT_PS_MB, # Re-added
+    ATTR_NET_RECV_PS_MB, # Re-added
     ATTR_TEMPERATURES,
     ATTR_EXTRA_FS,
     ATTR_GPU_DATA,
@@ -54,6 +58,8 @@ from .const import (
     ATTR_FS_DISK_TOTAL_GB,
     ATTR_FS_DISK_USED_GB,
     ATTR_FS_DISK_PERCENT,
+    ATTR_FS_DISK_READ_PS_MB, # Re-added
+    ATTR_FS_DISK_WRITE_PS_MB, # Re-added
 )
 from .coordinator import BeszelDataUpdateCoordinator
 
@@ -233,6 +239,46 @@ SENSOR_TYPES_STATS = [
         SensorDeviceClass.DATA_SIZE,
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
+        "stats",
+        True,
+    ),
+    (
+        ATTR_DISK_READ_PS_MB,
+        "Disk Read Speed",
+        UnitOfDataRate.MEGABYTES_PER_SECOND,
+        SensorDeviceClass.DATA_RATE,
+        SensorStateClass.MEASUREMENT,
+        "mdi:arrow-down-bold-circle-outline",
+        "stats",
+        True,
+    ),
+    (
+        ATTR_DISK_WRITE_PS_MB,
+        "Disk Write Speed",
+        UnitOfDataRate.MEGABYTES_PER_SECOND,
+        SensorDeviceClass.DATA_RATE,
+        SensorStateClass.MEASUREMENT,
+        "mdi:arrow-up-bold-circle-outline",
+        "stats",
+        True,
+    ),
+    (
+        ATTR_NET_SENT_PS_MB,
+        "Network Sent Speed",
+        UnitOfDataRate.MEGABYTES_PER_SECOND,
+        SensorDeviceClass.DATA_RATE,
+        SensorStateClass.MEASUREMENT,
+        "mdi:upload-network-outline",
+        "stats",
+        True,
+    ),
+    (
+        ATTR_NET_RECV_PS_MB,
+        "Network Received Speed",
+        UnitOfDataRate.MEGABYTES_PER_SECOND,
+        SensorDeviceClass.DATA_RATE,
+        SensorStateClass.MEASUREMENT,
+        "mdi:download-network-outline",
         "stats",
         True,
     ),
@@ -427,6 +473,24 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             SensorDeviceClass.DATA_SIZE,
             SensorStateClass.MEASUREMENT,
             "mdi:harddisk",
+            True,
+        ),
+        (
+            ATTR_FS_DISK_READ_PS_MB,
+            f"{fs_name} Read Speed",
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
+            SensorDeviceClass.DATA_RATE,
+            SensorStateClass.MEASUREMENT,
+            "mdi:arrow-down-bold-circle-outline",
+            True,
+        ),
+        (
+            ATTR_FS_DISK_WRITE_PS_MB,
+            f"{fs_name} Write Speed",
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
+            SensorDeviceClass.DATA_RATE,
+            SensorStateClass.MEASUREMENT,
+            "mdi:arrow-up-bold-circle-outline",
             True,
         ),
     ]
