@@ -701,9 +701,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             try:
                 total_seconds = float(raw_seconds_val)
             except (ValueError, TypeError):
-                return raw_seconds_val # Let HA handle bad type if it occurs
-            
-            if total_seconds < 0: # Uptime should not be negative
+                return raw_seconds_val  # Let HA handle bad type if it occurs
+
+            if total_seconds < 0:  # Uptime should not be negative
                 return None
 
             val: float
@@ -716,7 +716,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 val, unit = round(total_seconds / 3600, 2), UnitOfTime.HOURS
             else:  # Days
                 val, unit = round(total_seconds / 86400, 2), UnitOfTime.DAYS
-            
+
             self._calculated_unit_of_measurement = unit
             if unit == UnitOfTime.SECONDS:
                 return int(val) if val.is_integer() else val
@@ -740,7 +740,11 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         value = data_dict.get(self._api_key)
 
         # If a data rate key is missing, assume its value is 0.0.
-        if value is None and self._attr_native_unit_of_measurement == UnitOfDataRate.MEGABYTES_PER_SECOND:
+        if (
+            value is None
+            and self._attr_native_unit_of_measurement
+            == UnitOfDataRate.MEGABYTES_PER_SECOND
+        ):
             value = 0.0
 
         if self._api_key == ATTR_OS and self._data_source_key == "info":
@@ -750,7 +754,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             try:
                 return round(float(value), 2)
             except (ValueError, TypeError):
-                return value # Let HA handle bad type if it occurs
+                return value  # Let HA handle bad type if it occurs
         return value
 
     @property
@@ -910,7 +914,11 @@ class BeszelNestedSensor(BeszelSensor):
 
         # If a data rate key is missing from the nested item, assume its value is 0.0.
         # This ensures the sensor is created even if the API omits the key for zero values.
-        if value is None and self._attr_native_unit_of_measurement == UnitOfDataRate.MEGABYTES_PER_SECOND:
+        if (
+            value is None
+            and self._attr_native_unit_of_measurement
+            == UnitOfDataRate.MEGABYTES_PER_SECOND
+        ):
             value = 0.0
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
