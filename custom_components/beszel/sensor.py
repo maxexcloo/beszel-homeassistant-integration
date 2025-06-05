@@ -259,7 +259,6 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         self._data_source_key = data_source_key # Which part of system_data to use
         self._value_func = value_func
 
-        self.entity_id = f"sensor.beszel_{system_id.lower().replace('-', '_')}_{api_key.lower()}"
         self._attr_unique_id = f"{DOMAIN}_{system_id}_{api_key}"
         self._attr_name = f"{name_suffix}" # HA will prefix with device name
         self._attr_native_unit_of_measurement = unit
@@ -447,12 +446,12 @@ class BeszelNestedSensor(BeszelSensor):
         value_func = None,
     ) -> None:
         """Initialize the nested sensor."""
-        # Use a combination for unique ID and entity ID part
-        unique_part = f"{parent_key}_{item_key}_{api_value_key}"
+        # Use a combination for unique ID
+        unique_part = f"{parent_key}_{item_key}_{api_value_key}" # This becomes the api_key for the parent BeszelSensor
         super().__init__(
             coordinator, system_id, system_name,
-            unique_part, # api_key for BeszelSensor constructor
-            name_full,   # name_suffix for BeszelSensor constructor
+            unique_part, # This unique_part is used to construct _attr_unique_id in the parent.
+            name_full,   # name_suffix for BeszelSensor constructor (becomes entity name)
             unit, device_class, state_class, icon,
             "stats", # Data source is still 'stats' at the top level
             enabled_by_default,
