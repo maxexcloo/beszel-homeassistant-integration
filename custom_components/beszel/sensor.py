@@ -53,6 +53,12 @@ SENSOR_TYPES_INFO = [
     (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
     (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
     (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
+    (ATTR_CPU_PERCENT_INFO, "Info CPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
+    (ATTR_MEM_PERCENT_INFO, "Info Memory Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
+    (ATTR_DISK_PERCENT_INFO, "Info Disk Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
+    (ATTR_BANDWIDTH_MB, "Info Max Network Rate", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
+    (ATTR_GPU_PERCENT_INFO, "Info GPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
+    (ATTR_DASHBOARD_TEMP, "Info Dashboard Temperature", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer", "device_info_summary", False),
     (ATTR_PODMAN, "Podman Enabled", None, SensorDeviceClass.ENUM, None, "mdi:docker", "device_info_summary", False, ["False", "True"]),
 ]
 
@@ -72,8 +78,12 @@ SENSOR_TYPES_STATS = [
     (ATTR_DISK_TOTAL_GB, "Disk Total", UnitOfInformation.GIGABYTES, SensorDeviceClass.DATA_SIZE, SensorStateClass.MEASUREMENT, "mdi:harddisk", "stats", False),
     (ATTR_DISK_READ_PS_MB, "Disk Read Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-bold-circle-outline", "stats", True),
     (ATTR_DISK_WRITE_PS_MB, "Disk Write Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-bold-circle-outline", "stats", True),
+    (ATTR_DISK_READ_MAX_PS_MB, "Disk Read Max Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-bold-circle", "stats", False),
+    (ATTR_DISK_WRITE_MAX_PS_MB, "Disk Write Max Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-bold-circle", "stats", False),
     (ATTR_NET_SENT_PS_MB, "Network Sent Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-network", "stats", True),
     (ATTR_NET_RECV_PS_MB, "Network Received Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-network", "stats", True),
+    (ATTR_NET_SENT_MAX_PS_MB, "Network Sent Max Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-network-outline", "stats", False),
+    (ATTR_NET_RECV_MAX_PS_MB, "Network Received Max Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-network-outline", "stats", False),
     ("status", "Status", None, SensorDeviceClass.ENUM, None, "mdi:server-network", "status", True, ["up", "down", "paused", "pending", "unknown"]),
 ]
 
@@ -185,6 +195,8 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
         (ATTR_FS_DISK_TOTAL_GB, f"{fs_name} Total", UnitOfInformation.GIGABYTES, SensorDeviceClass.DATA_SIZE, SensorStateClass.MEASUREMENT, "mdi:harddisk", False),
         (ATTR_FS_DISK_READ_PS_MB, f"{fs_name} Read Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-bold-circle-outline", True),
         (ATTR_FS_DISK_WRITE_PS_MB, f"{fs_name} Write Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-bold-circle-outline", True),
+        (ATTR_FS_MAX_DISK_READ_PS_MB, f"{fs_name} Max Read Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-down-bold-circle", False),
+        (ATTR_FS_MAX_DISK_WRITE_PS_MB, f"{fs_name} Max Write Speed", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:arrow-up-bold-circle", False),
     ]
     for api_key_suffix, name_suffix_full, unit, dev_class, state_class, icon, enabled, *rest in fs_sensor_types:
         value_func = rest[0] if rest else None
@@ -253,7 +265,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
         self._attr_state_class = state_class
-        self._attr_icon = icon
+        self._icon_definition = icon # Store for dynamic icon property
         self._attr_entity_registry_enabled_default = enabled_by_default
         if device_class == SensorDeviceClass.ENUM and options:
             self._attr_options = options
@@ -284,6 +296,24 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         if os_type_raw == 2: return "Windows"
         if os_type_raw == 3: return "FreeBSD"
         return "Unknown"
+
+    def _map_os_type_to_icon(self, os_type_raw: Any) -> str | None:
+        """Map OS type code to an icon string."""
+        if os_type_raw == 0: return "mdi:linux"
+        if os_type_raw == 1: return "mdi:apple"
+        if os_type_raw == 2: return "mdi:microsoft-windows"
+        if os_type_raw == 3: return "mdi:freebsd"
+        return None # Fallback to default icon
+
+    @property
+    def icon(self) -> str | None:
+        """Return the icon of the sensor."""
+        if self._api_key == ATTR_OS and self._data_source_key == "device_info_summary":
+            os_type_raw = self.system_data.get("device_info_summary", {}).get(ATTR_OS)
+            mapped_icon = self._map_os_type_to_icon(os_type_raw)
+            if mapped_icon:
+                return mapped_icon
+        return self._icon_definition
 
     @property
     def system_data(self) -> Dict[str, Any]:
