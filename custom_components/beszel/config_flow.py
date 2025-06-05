@@ -43,10 +43,10 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
             except BeszelApiAuthError:
                 errors["base"] = "invalid_auth"
             except ClientResponseError as exc:
-                _LOGGER.error("PocketBase API error: %s", exc)
-                errors["base"] = "cannot_connect"  # Or a more specific error
+                _LOGGER.error("PocketBase API error during connection setup: %s", exc)
+                errors["base"] = "cannot_connect"
             except Exception as exc:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception: %s", exc)
+                _LOGGER.exception("Unexpected exception during setup: %s", exc)
                 errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(

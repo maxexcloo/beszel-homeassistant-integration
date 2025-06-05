@@ -25,21 +25,13 @@ from homeassistant.const import (
 from .const import (
     DOMAIN,
     ATTR_KERNEL_VERSION,
-    # ATTR_CPU_PERCENT_INFO, # Removed, use stats version
     ATTR_THREADS,
     ATTR_CORES,
     ATTR_CPU_MODEL,
     ATTR_UPTIME,
-    # ATTR_MEM_PERCENT_INFO, # Removed, use stats version
-    # ATTR_DISK_PERCENT_INFO, # Removed, use stats version
-    # ATTR_BANDWIDTH_MB, # Sensor removed
     ATTR_AGENT_VERSION,
-    # ATTR_PODMAN, # Sensor removed
-    # ATTR_GPU_PERCENT_INFO, # Removed, use per-GPU stats version
-    # ATTR_DASHBOARD_TEMP, # Sensor removed
     ATTR_OS,
     ATTR_CPU_PERCENT,
-    # ATTR_CPU_MAX_PERCENT, # Sensor removed
     ATTR_MEM_TOTAL_GB,
     ATTR_MEM_USED_GB,
     ATTR_MEM_PERCENT,
@@ -51,14 +43,10 @@ from .const import (
     ATTR_DISK_TOTAL_GB,
     ATTR_DISK_USED_GB,
     ATTR_DISK_PERCENT,
-    ATTR_DISK_READ_PS_MB,
-    ATTR_DISK_WRITE_PS_MB,
-    # ATTR_DISK_READ_MAX_PS_MB, # Sensor removed
-    # ATTR_DISK_WRITE_MAX_PS_MB, # Sensor removed
-    ATTR_NET_SENT_PS_MB,
-    ATTR_NET_RECV_PS_MB,
-    # ATTR_NET_SENT_MAX_PS_MB, # Sensor removed
-    # ATTR_NET_RECV_MAX_PS_MB, # Sensor removed
+    # ATTR_DISK_READ_PS_MB, # Sensor removed
+    # ATTR_DISK_WRITE_PS_MB, # Sensor removed
+    # ATTR_NET_SENT_PS_MB, # Sensor removed
+    # ATTR_NET_RECV_PS_MB, # Sensor removed
     ATTR_TEMPERATURES,
     ATTR_EXTRA_FS,
     ATTR_GPU_DATA,
@@ -70,17 +58,13 @@ from .const import (
     ATTR_FS_DISK_TOTAL_GB,
     ATTR_FS_DISK_USED_GB,
     ATTR_FS_DISK_PERCENT,
-    ATTR_FS_DISK_READ_PS_MB,
-    ATTR_FS_DISK_WRITE_PS_MB,
-    # ATTR_FS_MAX_DISK_READ_PS_MB, # Sensor removed
-    # ATTR_FS_MAX_DISK_WRITE_PS_MB, # Sensor removed
+    # ATTR_FS_DISK_READ_PS_MB, # Sensor removed
+    # ATTR_FS_DISK_WRITE_PS_MB, # Sensor removed
 )
 from .coordinator import BeszelDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-# Define sensors based on Beszel API structure
-# (key_in_api, name_suffix, unit, device_class, state_class, icon, data_source_key, enabled_by_default)
 SENSOR_TYPES_INFO = [
     (
         ATTR_UPTIME,
@@ -125,9 +109,6 @@ SENSOR_TYPES_INFO = [
     (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", True),
     (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", True),
     (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", True),
-    # ATTR_BANDWIDTH_MB ("Info Max Network Rate") sensor removed
-    # ATTR_DASHBOARD_TEMP ("Info Dashboard Temperature") sensor removed
-    # Podman sensor removed
 ]
 
 SENSOR_TYPES_STATS = [
@@ -141,7 +122,6 @@ SENSOR_TYPES_STATS = [
         "stats",
         True,
     ),
-    # ATTR_CPU_MAX_PERCENT sensor removed
     (
         ATTR_MEM_PERCENT,
         "Memory Usage",
@@ -262,50 +242,10 @@ SENSOR_TYPES_STATS = [
         "stats",
         True,
     ),
-    (
-        ATTR_DISK_READ_PS_MB,
-        "Disk Read Speed Max", # Renamed
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-bold-circle", # Icon updated
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_WRITE_PS_MB,
-        "Disk Write Speed Max", # Renamed
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-up-bold-circle", # Icon updated
-        "stats",
-        True,
-    ),
-    # ATTR_DISK_READ_MAX_PS_MB sensor removed
-    # ATTR_DISK_WRITE_MAX_PS_MB sensor removed
-    (
-        ATTR_NET_SENT_PS_MB,
-        "Network Sent Speed Max", # Renamed
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:upload-network",  # Icon updated
-        "stats",
-        True,
-    ),
-    (
-        ATTR_NET_RECV_PS_MB,
-        "Network Received Speed Max", # Renamed
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:download-network",  # Icon updated
-        "stats",
-        True,
-    ),
-    # ATTR_NET_SENT_MAX_PS_MB sensor removed
-    # ATTR_NET_RECV_MAX_PS_MB sensor removed
+    # Disk Read Speed Max sensor removed
+    # Disk Write Speed Max sensor removed
+    # Network Sent Speed Max sensor removed
+    # Network Received Speed Max sensor removed
     (
         "status",
         "Status",
@@ -523,26 +463,8 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             "mdi:harddisk",
             True,
         ),
-        (
-            ATTR_FS_DISK_READ_PS_MB,
-            f"{fs_name} Read Speed Max", # Renamed
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-down-bold-circle", # Icon updated
-            True,
-        ),
-        (
-            ATTR_FS_DISK_WRITE_PS_MB,
-            f"{fs_name} Write Speed Max", # Renamed
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-up-bold-circle", # Icon updated
-            True,
-        ),
-        # ATTR_FS_MAX_DISK_READ_PS_MB sensor removed
-        # ATTR_FS_MAX_DISK_WRITE_PS_MB sensor removed
+        # ATTR_FS_DISK_READ_PS_MB (fs Read Speed Max) sensor removed
+        # ATTR_FS_DISK_WRITE_PS_MB (fs Write Speed Max) sensor removed
     ]
     for (
         api_key_suffix,
@@ -679,10 +601,10 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         device_class: Optional[SensorDeviceClass],
         state_class: Optional[SensorStateClass],
         icon: Optional[str],
-        data_source_key: str,  # "stats", "info", "device_info_summary", "status", "agent_version_from_record"
+        data_source_key: str,  # "stats", "info", or "status"
         enabled_by_default: bool = True,
-        options: Optional[List[str]] = None,  # For ENUM device_class
-        value_func=None,  # Optional function to calculate value
+        options: Optional[List[str]] = None,
+        value_func=None,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -709,9 +631,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             "identifiers": {(DOMAIN, self._system_id)},
             "name": self._system_name,
             "manufacturer": "Beszel",
-            "model": "Monitored System",  # Could be enhanced with OS type later
+            "model": "Monitored System",
         }
-        # Try to get agent version and OS from initial data for device info
+        # Get agent version and OS from initial data for device info
         initial_system_data = coordinator.data.get(self._system_id, {})
         if initial_system_data and not initial_system_data.get("error"):
             agent_version = initial_system_data.get("info", {}).get(
@@ -724,8 +646,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 self._attr_device_info["model"] = os_name  # Use OS as model
 
     def _map_os_type_to_name(self, os_type_raw: Any) -> str:
-        """Map OS type code to a human-readable name."""
-        # Based on beszel/site/src/lib/enums.ts
+        """Map OS type code to a human-readable name.
+        Based on beszel/site/src/lib/enums.ts
+        """
         if os_type_raw == 0:
             return "Linux"
         if os_type_raw == 1:
@@ -792,13 +715,12 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
 
         if self._api_key == ATTR_OS and self._data_source_key == "info":
             return self._map_os_type_to_name(value)
-        # ATTR_PODMAN handling removed as sensor is removed
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
             try:
                 return round(float(value), 2)
             except (ValueError, TypeError):
-                return value  # Or None if preferred for non-numeric
+                return value
         return value
 
     @property
@@ -838,8 +760,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 self._attr_device_info["model"] = new_os_name
                 updated_device_info = True
 
-            # If device info changed, we might need to inform HA, though it's usually static after setup.
-            # For now, just updating the internal attribute.
+            # Device info is updated here, HA will pick it up as needed.
 
         super()._handle_coordinator_update()
 
@@ -881,7 +802,7 @@ class BeszelTemperatureSensor(BeszelSensor):
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
             "mdi:thermometer",
-            "stats",  # Temperature data is within the "stats" dict
+            "stats",
             True,
         )
 
@@ -889,12 +810,9 @@ class BeszelTemperatureSensor(BeszelSensor):
     def icon(self) -> str | None:
         """Return the icon of the temperature sensor."""
         key_lower = self._temp_sensor_key.lower()
-        # Check if "cpu" or "thermal" is in the sensor key, which often indicates a CPU temperature
-        if "cpu" in key_lower or "thermal" in key_lower:
+        if "cpu" in key_lower or "thermal" in key_lower: # Prioritize CPU icon for CPU temps
             return "mdi:cpu-64-bit"
-        return (
-            super().icon
-        )  # Fallback to the default icon defined in BeszelSensor (mdi:thermometer)
+        return super().icon # Fallback to default BeszelSensor icon (mdi:thermometer)
 
     @property
     def native_value(self) -> Optional[float]:
@@ -919,8 +837,8 @@ class BeszelNestedSensor(BeszelSensor):
         system_name: str,
         parent_key: str,  # e.g., ATTR_EXTRA_FS or ATTR_GPU_DATA
         item_key: str,  # e.g., specific filesystem name or GPU ID/name
-        api_value_key: str,  # e.g., ATTR_FS_DISK_USED_GB or ATTR_GPU_USAGE_PERCENT
-        name_full: str,  # Full name for the sensor, e.g., "sda1 Disk Used"
+        api_value_key: str,
+        name_full: str,
         unit: Optional[str],
         device_class: Optional[SensorDeviceClass],
         state_class: Optional[SensorStateClass],
@@ -929,19 +847,18 @@ class BeszelNestedSensor(BeszelSensor):
         value_func=None,
     ) -> None:
         """Initialize the nested sensor."""
-        # Use a combination for unique ID
-        unique_part = f"{parent_key}_{item_key}_{api_value_key}"  # This becomes the api_key for the parent BeszelSensor
+        unique_part = f"{parent_key}_{item_key}_{api_value_key}"
         super().__init__(
             coordinator,
             system_id,
             system_name,
-            unique_part,  # This unique_part is used to construct _attr_unique_id in the parent.
-            name_full,  # name_suffix for BeszelSensor constructor (becomes entity name)
+            unique_part,
+            name_full,
             unit,
             device_class,
             state_class,
             icon,
-            "stats",  # Data source is still 'stats' at the top level
+            "stats", # Nested sensors derive data from the 'stats' part of the coordinator data
             enabled_by_default,
             value_func=value_func,
         )
@@ -955,7 +872,7 @@ class BeszelNestedSensor(BeszelSensor):
         parent_dict = self.system_data.get("stats", {}).get(self._parent_key, {})
         item_dict = parent_dict.get(self._item_key, {})
 
-        if self._value_func:  # If a custom value function is provided
+        if self._value_func:
             return self._value_func(item_dict)
 
         value = item_dict.get(self._api_value_key)

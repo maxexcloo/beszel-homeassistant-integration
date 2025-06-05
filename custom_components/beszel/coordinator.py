@@ -31,31 +31,24 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             name=DOMAIN,
             update_interval=timedelta(seconds=update_interval_seconds),
         )
-        self.systems_list: List[Dict[str, Any]] = []  # Store the list of systems
+        self.systems_list: List[Dict[str, Any]] = []
 
     async def _async_update_data(self) -> Dict[str, Any]:
-        """Fetch data from API endpoint.
-
-        This is the place to pre-process the data to lookup tables
-        so entities can quickly look up their data.
-        """
+        """Fetch data from API endpoint."""
         try:
-            # Ensure client is authenticated
             await self.api_client.async_authenticate()
 
-            # Fetch the list of systems first
             self.systems_list = await self.api_client.async_get_systems()
             if not self.systems_list:
                 _LOGGER.info("No systems found.")
                 return {}
 
-            # For each system, fetch its latest stats and info
             all_system_data: Dict[str, Any] = {}
             tasks = []
             for system in self.systems_list:
                 system_id = system.get("id")
-                if not system_id:
-                    continue  # Should not happen if API is consistent
+                if not system_id: # Should ideally not happen
+                    continue
 
                 tasks.append(
                     self._fetch_individual_system_data(
@@ -78,28 +71,25 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     all_system_data[system_id] = {"error": str(result)}
                 elif result:
                     all_system_data[system_id] = result
-                else:  # Should not happen if _fetch_individual_system_data returns dict
+                else: # Should not happen if _fetch_individual_system_data returns dict
                     all_system_data[system_id] = {
-                        "error": "Unknown error fetching data"
+                        "error": "Unknown error fetching data for system"
                     }
 
             return all_system_data
 
         except BeszelApiAuthError as err:
             raise UpdateFailed(f"Authentication error: {err}") from err
-        except Exception as err:
+        except Exception as err: # Catch any other exception during the update
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
     async def _fetch_individual_system_data(
         self, system_id: str, system_name: str
     ) -> Dict[str, Any]:
-        """Fetch stats and info for a single system."""
+        """Fetch stats and 'info' for a single system."""
         stats = await self.api_client.async_get_latest_system_stats(system_id)
 
-        # The 'info' field from the system record itself (from self.systems_list)
-        # is what's shown in the Beszel UI's system list and contains the summary info.
-        # This is now the sole source for "info" type data for sensors.
-
+        # 'info' comes from the system record obtained via async_get_systems()
         system_record = next(
             (s for s in self.systems_list if s.get("id") == system_id), None
         )
@@ -111,11 +101,8 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "id": system_id,
             "name": system_name,
             "stats": stats or {},
-            # "info" key is now populated by device_info_summary for consistency,
-            # as the separate async_get_system_info call was redundant.
-            "info": device_info_summary,  # device_info_summary now contains 'v' if provided by API
+            "info": device_info_summary, # Contains agent version 'v', OS, etc.
             "status": (
                 system_record.get("status", "unknown") if system_record else "unknown"
             ),
-            # "agent_version_from_record" is removed. Agent version is now part of "info".
         }

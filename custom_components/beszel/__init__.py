@@ -21,7 +21,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     password = entry.data["Password"]
 
     api_client = BeszelApiClient(host, username, password)
-    await api_client.async_authenticate()  # Initial auth check
+    # Initial authentication will be attempted by the coordinator's first refresh.
+    # await api_client.async_authenticate() # This is not strictly needed here
 
     coordinator = BeszelDataUpdateCoordinator(
         hass,

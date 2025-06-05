@@ -19,9 +19,8 @@ class BeszelApiClient:
 
     def __init__(self, host: str, username: str, password: str) -> None:
         """Initialize the API client."""
-        # Ensure host starts with http:// or https://
         if not host.startswith(("http://", "https://")):
-            host = f"http://{host}"  # Default to http, user can specify https
+            host = f"http://{host}" # Default to http
         self._host = host
         self._username = username
         self._password = password
@@ -74,13 +73,12 @@ class BeszelApiClient:
             return [vars(record) for record in records]
         except ClientResponseError as e:
             _LOGGER.error("Error fetching systems: %s", e)
-            # Re-raise or handle as appropriate, e.g., if auth token expired
-            if e.status == 401 or e.status == 403:  # Unauthorized or Forbidden
-                self._is_authenticated = False  # Force re-auth on next call
+            if e.status == 401 or e.status == 403:
+                self._is_authenticated = False
                 raise BeszelApiAuthError(
                     "Token likely expired, re-authentication needed"
                 ) from e
-            raise  # Re-raise other errors
+            raise
 
     async def async_get_latest_system_stats(
         self, system_id: str
@@ -91,14 +89,14 @@ class BeszelApiClient:
         try:
             records = await asyncio.to_thread(
                 self._client.collection("system_stats").get_full_list,
-                batch=1,  # We only need the latest one
+                batch=1, # Fetch only the most recent record
                 query_params={
                     "filter": f'system="{system_id}"',
                     "sort": "-created",
                 },
             )
             if records:
-                return vars(records[0]).get("stats", {})  # Return the 'stats' object
+                return vars(records[0]).get("stats", {})
             return None
         except ClientResponseError as e:
             _LOGGER.error("Error fetching stats for system %s: %s", system_id, e)
