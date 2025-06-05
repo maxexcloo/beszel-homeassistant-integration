@@ -91,7 +91,7 @@ class BeszelApiClient:
         try:
             records = await asyncio.to_thread(
                 self._client.collection("system_stats").get_full_list,
-                batch_size=1,  # We only need the latest one
+                batch=1,  # We only need the latest one
                 query_params={
                     "filter": f'system="{system_id}"',
                     "sort": "-created",
