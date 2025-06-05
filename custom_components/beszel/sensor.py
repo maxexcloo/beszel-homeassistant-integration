@@ -372,9 +372,7 @@ async def async_setup_entry(
             for (
                 gpu_id,
                 gpu_stats,
-            ) in (
-                gpu_data_map.items()
-            ):
+            ) in gpu_data_map.items():
                 gpu_name_from_stats = gpu_stats.get(ATTR_GPU_NAME, gpu_id)
                 entities_to_add.extend(
                     _create_gpu_sensors(
