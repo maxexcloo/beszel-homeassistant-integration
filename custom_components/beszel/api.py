@@ -71,7 +71,7 @@ class BeszelApiClient:
                 self._client.collection("systems").get_full_list,
                 query_params={"sort": "-status,name"},
             )
-            return [record.to_dict() for record in records]
+            return [vars(record) for record in records]
         except ClientResponseError as e:
             _LOGGER.error("Error fetching systems: %s", e)
             # Re-raise or handle as appropriate, e.g., if auth token expired
@@ -99,7 +99,7 @@ class BeszelApiClient:
             )
             if records:
                 return (
-                    records[0].to_dict().get("stats", {})
+                    vars(records[0]).get("stats", {})
                 )  # Return the 'stats' object
             return None
         except ClientResponseError as e:
