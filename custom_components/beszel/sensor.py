@@ -34,7 +34,7 @@ from .const import (
     ATTR_DISK_PERCENT_INFO,
     ATTR_BANDWIDTH_MB,
     ATTR_AGENT_VERSION,
-    ATTR_PODMAN,
+    # ATTR_PODMAN, # Sensor removed
     ATTR_GPU_PERCENT_INFO,
     ATTR_DASHBOARD_TEMP,
     ATTR_OS,
@@ -145,17 +145,7 @@ SENSOR_TYPES_INFO = [
         "info",
         True,
     ),
-    (
-        ATTR_PODMAN,
-        "Podman Enabled",
-        None,
-        SensorDeviceClass.ENUM,
-        None,
-        "mdi:docker",
-        "info",
-        True,
-        ["False", "True"],
-    ),
+    # Podman sensor removed
 ]
 
 SENSOR_TYPES_STATS = [
@@ -832,8 +822,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
 
         if self._api_key == ATTR_OS and self._data_source_key == "info":
             return self._map_os_type_to_name(value)
-        if self._api_key == ATTR_PODMAN and self._data_source_key == "info":
-            return "True" if value else "False"
+        # ATTR_PODMAN handling removed as sensor is removed
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
             try:
@@ -845,17 +834,14 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        coordinator_available = super().available
-
-        if not coordinator_available:
+        # Check coordinator availability (last_update_success and coordinator.data is not None)
+        if not super().available:
             return False
 
-        if self._api_key == ATTR_AGENT_VERSION:
-            # Check the actual value that would be displayed for agent version
-            value = self.system_data.get("agent_version_from_record", "unknown")
-            if value == "unknown":
-                return False
-
+        # Check if data for this specific system_id exists and has no error
+        system_specific_data = self.coordinator.data.get(self._system_id)
+        if not system_specific_data or "error" in system_specific_data:
+            return False
         return True
 
     @callback
@@ -899,12 +885,18 @@ class BeszelTemperatureSensor(BeszelSensor):
         temp_sensor_key: str,  # e.g., "coretemp_core0_input"
     ) -> None:
         """Initialize the temperature sensor."""
+        self._temp_sensor_key = temp_sensor_key
+        name_to_use = f"Temperature {temp_sensor_key.replace('_', ' ').title()}"
+        key_lower_for_name = temp_sensor_key.lower()
+        if "cpu" in key_lower_for_name and "thermal" in key_lower_for_name:
+            name_to_use = "CPU Temperature"
+
         super().__init__(
             coordinator,
             system_id,
             system_name,
             temp_sensor_key,  # This will be the unique part of the ID
-            f"Temperature {temp_sensor_key.replace('_', ' ').title()}",  # Name suffix
+            name_to_use,  # Name suffix
             UnitOfTemperature.CELSIUS,
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
@@ -912,7 +904,6 @@ class BeszelTemperatureSensor(BeszelSensor):
             "stats",  # Temperature data is within the "stats" dict
             True,
         )
-        self._temp_sensor_key = temp_sensor_key
 
     @property
     def icon(self) -> str | None:
