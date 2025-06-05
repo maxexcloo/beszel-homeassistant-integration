@@ -24,7 +24,7 @@ The `beszel` integration allows you to monitor system statistics from servers ru
 ## Prerequisites
 
 *   A running instance of the Beszel agent/server that exposes an API endpoint.
-*   Home Assistant version 2023.x.x or newer (Please update with the actual minimum version if known).
+*   Home Assistant version 2023.x.x or newer.
 
 ## Installation
 
