@@ -291,7 +291,7 @@ SENSOR_TYPES_STATS = [
         "mdi:server-network",
         "status",
         True,
-        ["Up", "Down", "paused", "pending", "unknown"],
+        ["Up", "Down", "Paused", "Pending", "Unknown"],
     ),
 ]
 
@@ -739,7 +739,8 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 return "Up"
             if current_status == "down":
                 return "Down"
-            return current_status
+            # For other statuses like "paused", "pending", "unknown"
+            return current_status.title()
 
         # Default handling for other sensors
         data_dict = self.system_data.get(self._data_source_key, {})
