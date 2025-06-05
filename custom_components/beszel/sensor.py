@@ -709,6 +709,11 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
 
         value = data_dict.get(self._api_key)
 
+        # If a data rate key is missing, assume its value is 0.0.
+        # This ensures the sensor is created even if the API omits the key for zero values.
+        if value is None and self._attr_native_unit_of_measurement == UnitOfDataRate.MEGABYTES_PER_SECOND:
+            value = 0.0
+
         if self._api_key == ATTR_OS and self._data_source_key == "info":
             return self._map_os_type_to_name(value)
 
@@ -866,6 +871,11 @@ class BeszelNestedSensor(BeszelSensor):
             return self._value_func(item_dict)
 
         value = item_dict.get(self._api_value_key)
+
+        # If a data rate key is missing from the nested item, assume its value is 0.0.
+        # This ensures the sensor is created even if the API omits the key for zero values.
+        if value is None and self._attr_native_unit_of_measurement == UnitOfDataRate.MEGABYTES_PER_SECOND:
+            value = 0.0
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
             try:
