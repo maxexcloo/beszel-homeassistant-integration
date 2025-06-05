@@ -779,7 +779,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         self._data_source_key = data_source_key  # Which part of system_data to use
         self._value_func = value_func
 
-        self._attr_unique_id = f"{DOMAIN}_{system_id}_{api_key}"
+        self._attr_unique_id = f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
         self._attr_name = f"{name_suffix}"  # HA will prefix with device name
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
