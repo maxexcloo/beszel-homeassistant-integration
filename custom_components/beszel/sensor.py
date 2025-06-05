@@ -46,20 +46,20 @@ _LOGGER = logging.getLogger(__name__)
 # Define sensors based on Beszel API structure
 # (key_in_api, name_suffix, unit, device_class, state_class, icon, data_source_key, enabled_by_default)
 SENSOR_TYPES_INFO = [
-    (ATTR_UPTIME, "Uptime", UnitOfTime.SECONDS, SensorDeviceClass.DURATION, SensorStateClass.TOTAL_INCREASING, "mdi:timer-sand", "device_info_summary", True),
+    (ATTR_UPTIME, "Uptime", UnitOfTime.SECONDS, SensorDeviceClass.DURATION, SensorStateClass.TOTAL_INCREASING, "mdi:timer-sand", "info", True),
     (ATTR_AGENT_VERSION, "Agent Version", None, None, None, "mdi:information-outline", "agent_version_from_record", False),
-    (ATTR_OS, "Operating System", None, None, None, "mdi:linux", "device_info_summary", False), # Icon can be dynamic
-    (ATTR_KERNEL_VERSION, "Kernel Version", None, None, None, "mdi:chip", "device_info_summary", False),
-    (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
-    (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
-    (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "device_info_summary", False),
-    (ATTR_CPU_PERCENT_INFO, "Info CPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
-    (ATTR_MEM_PERCENT_INFO, "Info Memory Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
-    (ATTR_DISK_PERCENT_INFO, "Info Disk Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
-    (ATTR_BANDWIDTH_MB, "Info Max Network Rate", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
-    (ATTR_GPU_PERCENT_INFO, "Info GPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "device_info_summary", False),
-    (ATTR_DASHBOARD_TEMP, "Info Dashboard Temperature", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer", "device_info_summary", False),
-    (ATTR_PODMAN, "Podman Enabled", None, SensorDeviceClass.ENUM, None, "mdi:docker", "device_info_summary", False, ["False", "True"]),
+    (ATTR_OS, "Operating System", None, None, None, "mdi:linux", "info", False), # Icon can be dynamic
+    (ATTR_KERNEL_VERSION, "Kernel Version", None, None, None, "mdi:chip", "info", False),
+    (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", False),
+    (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", False),
+    (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", False),
+    (ATTR_CPU_PERCENT_INFO, "Info CPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "info", False),
+    (ATTR_MEM_PERCENT_INFO, "Info Memory Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "info", False),
+    (ATTR_DISK_PERCENT_INFO, "Info Disk Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "info", False),
+    (ATTR_BANDWIDTH_MB, "Info Max Network Rate", UnitOfDataRate.MEGABYTES_PER_SECOND, SensorDeviceClass.DATA_RATE, SensorStateClass.MEASUREMENT, "mdi:gauge", "info", False),
+    (ATTR_GPU_PERCENT_INFO, "Info GPU Usage", PERCENTAGE, SensorDeviceClass.POWER_FACTOR, SensorStateClass.MEASUREMENT, "mdi:gauge", "info", False),
+    (ATTR_DASHBOARD_TEMP, "Info Dashboard Temperature", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer", "info", False),
+    (ATTR_PODMAN, "Podman Enabled", None, SensorDeviceClass.ENUM, None, "mdi:docker", "info", False, ["False", "True"]),
 ]
 
 SENSOR_TYPES_STATS = [
@@ -281,7 +281,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         initial_system_data = coordinator.data.get(self._system_id, {})
         if initial_system_data and not initial_system_data.get("error"):
             agent_version = initial_system_data.get("agent_version_from_record", "Unknown")
-            os_type_raw = initial_system_data.get("device_info_summary", {}).get(ATTR_OS)
+            os_type_raw = initial_system_data.get("info", {}).get(ATTR_OS)
             os_name = self._map_os_type_to_name(os_type_raw)
             self._attr_device_info["sw_version"] = agent_version
             if os_name != "Unknown":
@@ -307,8 +307,8 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def icon(self) -> str | None:
         """Return the icon of the sensor."""
-        if self._api_key == ATTR_OS and self._data_source_key == "device_info_summary":
-            os_type_raw = self.system_data.get("device_info_summary", {}).get(ATTR_OS)
+        if self._api_key == ATTR_OS and self._data_source_key == "info":
+            os_type_raw = self.system_data.get("info", {}).get(ATTR_OS)
             mapped_icon = self._map_os_type_to_icon(os_type_raw)
             if mapped_icon:
                 return mapped_icon
@@ -339,9 +339,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
 
         value = data_dict.get(self._api_key)
 
-        if self._api_key == ATTR_OS and self._data_source_key == "device_info_summary":
+        if self._api_key == ATTR_OS and self._data_source_key == "info":
             return self._map_os_type_to_name(value)
-        if self._api_key == ATTR_PODMAN and self._data_source_key == "device_info_summary":
+        if self._api_key == ATTR_PODMAN and self._data_source_key == "info":
             return "True" if value else "False"
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
@@ -358,7 +358,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         current_data = self.coordinator.data.get(self._system_id, {})
         if current_data and not current_data.get("error"):
             new_agent_version = current_data.get("agent_version_from_record")
-            new_os_raw = current_data.get("device_info_summary", {}).get(ATTR_OS)
+            new_os_raw = current_data.get("info", {}).get(ATTR_OS)
             new_os_name = self._map_os_type_to_name(new_os_raw)
 
             updated_device_info = False
