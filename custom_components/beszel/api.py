@@ -1,4 +1,5 @@
 """API for Beszel."""
+
 import asyncio
 import logging
 from typing import Any, List, Dict
@@ -8,8 +9,10 @@ from pocketbase.utils import ClientResponseError
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class BeszelApiAuthError(Exception):
     """Custom exception for authentication errors."""
+
 
 class BeszelApiClient:
     """Beszel API Client."""
@@ -18,7 +21,7 @@ class BeszelApiClient:
         """Initialize the API client."""
         # Ensure host starts with http:// or https://
         if not host.startswith(("http://", "https://")):
-            host = f"http://{host}" # Default to http, user can specify https
+            host = f"http://{host}"  # Default to http, user can specify https
         self._host = host
         self._username = username
         self._password = password
@@ -56,38 +59,46 @@ class BeszelApiClient:
         try:
             records = await asyncio.to_thread(
                 self._client.collection("systems").get_full_list,
-                query_params={"sort": "-status,name"}
+                query_params={"sort": "-status,name"},
             )
             return [record.to_dict() for record in records]
         except ClientResponseError as e:
             _LOGGER.error("Error fetching systems: %s", e)
             # Re-raise or handle as appropriate, e.g., if auth token expired
-            if e.status == 401 or e.status == 403: # Unauthorized or Forbidden
-                 self._is_authenticated = False # Force re-auth on next call
-                 raise BeszelApiAuthError("Token likely expired, re-authentication needed") from e
-            raise # Re-raise other errors
+            if e.status == 401 or e.status == 403:  # Unauthorized or Forbidden
+                self._is_authenticated = False  # Force re-auth on next call
+                raise BeszelApiAuthError(
+                    "Token likely expired, re-authentication needed"
+                ) from e
+            raise  # Re-raise other errors
 
-    async def async_get_latest_system_stats(self, system_id: str) -> Dict[str, Any] | None:
+    async def async_get_latest_system_stats(
+        self, system_id: str
+    ) -> Dict[str, Any] | None:
         """Fetch the latest stats for a specific system."""
         await self._ensure_auth()
         _LOGGER.debug("Fetching latest stats for system ID: %s", system_id)
         try:
             records = await asyncio.to_thread(
                 self._client.collection("system_stats").get_full_list,
-                batch_size=1, # We only need the latest one
+                batch_size=1,  # We only need the latest one
                 query_params={
                     "filter": f'system="{system_id}"',
                     "sort": "-created",
                 },
             )
             if records:
-                return records[0].to_dict().get("stats", {}) # Return the 'stats' object
+                return (
+                    records[0].to_dict().get("stats", {})
+                )  # Return the 'stats' object
             return None
         except ClientResponseError as e:
             _LOGGER.error("Error fetching stats for system %s: %s", system_id, e)
             if e.status == 401 or e.status == 403:
-                 self._is_authenticated = False
-                 raise BeszelApiAuthError("Token likely expired, re-authentication needed") from e
+                self._is_authenticated = False
+                raise BeszelApiAuthError(
+                    "Token likely expired, re-authentication needed"
+                ) from e
             raise
         except IndexError:
             _LOGGER.warning("No stats found for system ID: %s", system_id)

@@ -1,4 +1,5 @@
 """Config flow for Beszel integration."""
+
 import logging
 from typing import Any
 
@@ -44,12 +45,14 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except ClientResponseError as exc:
                 _LOGGER.error("PocketBase API error: %s", exc)
-                errors["base"] = "cannot_connect" # Or a more specific error
+                errors["base"] = "cannot_connect"  # Or a more specific error
             except Exception as exc:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception: %s", exc)
                 errors["base"] = "unknown"
             else:
-                await self.async_set_unique_id(f"{user_input[CONF_HOST]}_{user_input[CONF_USERNAME]}")
+                await self.async_set_unique_id(
+                    f"{user_input[CONF_HOST]}_{user_input[CONF_USERNAME]}"
+                )
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=user_input[CONF_HOST], data=user_input

@@ -1,4 +1,5 @@
 """The Beszel integration."""
+
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     password = entry.data[CONF_PASSWORD]
 
     api_client = BeszelApiClient(host, username, password)
-    await api_client.async_authenticate() # Initial auth check
+    await api_client.async_authenticate()  # Initial auth check
 
     coordinator = BeszelDataUpdateCoordinator(
         hass,

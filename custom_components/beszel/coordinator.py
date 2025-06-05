@@ -1,4 +1,5 @@
 """DataUpdateCoordinator for the Beszel integration."""
+
 import asyncio
 from datetime import timedelta
 import logging
@@ -30,7 +31,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             name=DOMAIN,
             update_interval=timedelta(seconds=update_interval_seconds),
         )
-        self.systems_list: List[Dict[str, Any]] = [] # Store the list of systems
+        self.systems_list: List[Dict[str, Any]] = []  # Store the list of systems
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from API endpoint.
@@ -54,9 +55,13 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             for system in self.systems_list:
                 system_id = system.get("id")
                 if not system_id:
-                    continue # Should not happen if API is consistent
+                    continue  # Should not happen if API is consistent
 
-                tasks.append(self._fetch_individual_system_data(system_id, system.get("name", system_id)))
+                tasks.append(
+                    self._fetch_individual_system_data(
+                        system_id, system.get("name", system_id)
+                    )
+                )
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -67,13 +72,17 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
                 result = results[i]
                 if isinstance(result, Exception):
-                    _LOGGER.error("Error fetching data for system %s: %s", system_id, result)
+                    _LOGGER.error(
+                        "Error fetching data for system %s: %s", system_id, result
+                    )
                     all_system_data[system_id] = {"error": str(result)}
                 elif result:
                     all_system_data[system_id] = result
-                else: # Should not happen if _fetch_individual_system_data returns dict
-                    all_system_data[system_id] = {"error": "Unknown error fetching data"}
-            
+                else:  # Should not happen if _fetch_individual_system_data returns dict
+                    all_system_data[system_id] = {
+                        "error": "Unknown error fetching data"
+                    }
+
             return all_system_data
 
         except BeszelApiAuthError as err:
@@ -81,19 +90,22 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
-    async def _fetch_individual_system_data(self, system_id: str, system_name: str) -> Dict[str, Any]:
+    async def _fetch_individual_system_data(
+        self, system_id: str, system_name: str
+    ) -> Dict[str, Any]:
         """Fetch stats and info for a single system."""
         stats = await self.api_client.async_get_latest_system_stats(system_id)
-        
+
         # The 'info' field from the system record itself (from self.systems_list)
         # is what's shown in the Beszel UI's system list and contains the summary info.
         # This is now the sole source for "info" type data for sensors.
-        
-        system_record = next((s for s in self.systems_list if s.get("id") == system_id), None)
+
+        system_record = next(
+            (s for s in self.systems_list if s.get("id") == system_id), None
+        )
         device_info_summary = {}
         if system_record:
             device_info_summary = system_record.get("info", {})
-
 
         return {
             "id": system_id,
@@ -102,6 +114,10 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             # "info" key is now populated by device_info_summary for consistency,
             # as the separate async_get_system_info call was redundant.
             "info": device_info_summary,
-            "status": system_record.get("status", "unknown") if system_record else "unknown",
-            "agent_version_from_record": system_record.get("v", "unknown") if system_record else "unknown", # Agent version from system record
+            "status": (
+                system_record.get("status", "unknown") if system_record else "unknown"
+            ),
+            "agent_version_from_record": (
+                system_record.get("v", "unknown") if system_record else "unknown"
+            ),  # Agent version from system record
         }
