@@ -38,6 +38,7 @@ ATTR_MEM_BUFF_CACHE_GB = "mb"
 ATTR_MEM_ZFS_ARC_GB = "mz"
 ATTR_SWAP_TOTAL_GB = "s"
 ATTR_SWAP_USED_GB = "su"
+ATTR_SWAP_PERCENT = "sp" # Placeholder, confirm actual API key if different
 ATTR_DISK_TOTAL_GB = "d"
 ATTR_DISK_USED_GB = "du"
 ATTR_DISK_PERCENT = "dp"
@@ -63,6 +64,7 @@ ATTR_GPU_POWER_W = "p"
 # For ExtraFsStats
 ATTR_FS_DISK_TOTAL_GB = "d"
 ATTR_FS_DISK_USED_GB = "du"
+ATTR_FS_DISK_PERCENT = "dp" # Placeholder, confirm actual API key if different
 ATTR_FS_DISK_READ_PS_MB = "r"
 ATTR_FS_DISK_WRITE_PS_MB = "w"
 ATTR_FS_MAX_DISK_READ_PS_MB = "rm"
