@@ -12,5 +12,5 @@
     "zeroconf": [],
     "ssdp": [],
     "homekit": {},
-    "entry_points": {},
+    "entry_points": {}
 }
