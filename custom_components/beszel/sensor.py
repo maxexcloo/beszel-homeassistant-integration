@@ -317,7 +317,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:upload-network-outline", # Changed icon
+        "mdi:upload-network-outline",  # Changed icon
         "stats",
         True,
     ),
@@ -327,7 +327,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:download-network-outline", # Changed icon
+        "mdi:download-network-outline",  # Changed icon
         "stats",
         True,
     ),
@@ -918,15 +918,17 @@ class BeszelTemperatureSensor(BeszelSensor):
         """Initialize the temperature sensor."""
         self._temp_sensor_key = temp_sensor_key
         key_lower_for_name = temp_sensor_key.lower()
-        
+
         name_to_use: str
         if "cpu" in key_lower_for_name and "thermal" in key_lower_for_name:
             name_to_use = "CPU Temperature"
         else:
-            base_name_parts = temp_sensor_key.replace('_', ' ').split(' ')
+            base_name_parts = temp_sensor_key.replace("_", " ").split(" ")
             titled_parts = [part.title() for part in base_name_parts]
             # Specifically capitalize "NVME" if present
-            final_parts = ["NVME" if part.lower() == "nvme" else part for part in titled_parts]
+            final_parts = [
+                "NVME" if part.lower() == "nvme" else part for part in titled_parts
+            ]
             processed_key_name = " ".join(final_parts)
             name_to_use = f"Temperature {processed_key_name}"
 
