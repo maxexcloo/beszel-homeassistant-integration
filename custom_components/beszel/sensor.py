@@ -1,5 +1,6 @@
 """Sensor platform for Beszel."""
 
+import logging
 from typing import Any, Dict, Optional, List
 
 from homeassistant.components.sensor import (
