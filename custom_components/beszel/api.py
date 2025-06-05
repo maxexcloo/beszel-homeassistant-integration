@@ -98,9 +98,7 @@ class BeszelApiClient:
                 },
             )
             if records:
-                return (
-                    vars(records[0]).get("stats", {})
-                )  # Return the 'stats' object
+                return vars(records[0]).get("stats", {})  # Return the 'stats' object
             return None
         except ClientResponseError as e:
             _LOGGER.error("Error fetching stats for system %s: %s", system_id, e)
