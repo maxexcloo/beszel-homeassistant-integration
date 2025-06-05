@@ -5,7 +5,7 @@ import logging
 from typing import Any, List, Dict
 
 from pocketbase import PocketBase
-from pocketbase.utils import ClientResponseError
+from pocketbase.utils import ClientResponseError, validate_token
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +30,12 @@ class BeszelApiClient:
 
     async def async_authenticate(self) -> None:
         """Authenticate with the Beszel Hub."""
-        if self._is_authenticated and self._client.auth_store.is_auth_valid():
+        if (
+            self._is_authenticated
+            and self._client.auth_store.token
+            and self._client.auth_store.model
+            and validate_token(self._client.auth_store.token)
+        ):
             return
 
         _LOGGER.debug("Attempting authentication with Beszel Hub at %s", self._host)
@@ -49,7 +54,12 @@ class BeszelApiClient:
 
     async def _ensure_auth(self) -> None:
         """Ensure the client is authenticated before making a request."""
-        if not self._is_authenticated or not self._client.auth_store.is_auth_valid():
+        if not (
+            self._is_authenticated
+            and self._client.auth_store.token
+            and self._client.auth_store.model
+            and validate_token(self._client.auth_store.token)
+        ):
             await self.async_authenticate()
 
     async def async_get_systems(self) -> List[Dict[str, Any]]:
