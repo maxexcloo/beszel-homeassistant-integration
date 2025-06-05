@@ -39,7 +39,7 @@ from .const import (
     # ATTR_DASHBOARD_TEMP, # Sensor removed
     ATTR_OS,
     ATTR_CPU_PERCENT,
-    ATTR_CPU_MAX_PERCENT,
+    # ATTR_CPU_MAX_PERCENT, # Sensor removed
     ATTR_MEM_TOTAL_GB,
     ATTR_MEM_USED_GB,
     ATTR_MEM_PERCENT,
@@ -53,12 +53,12 @@ from .const import (
     ATTR_DISK_PERCENT,
     ATTR_DISK_READ_PS_MB,
     ATTR_DISK_WRITE_PS_MB,
-    ATTR_DISK_READ_MAX_PS_MB,
-    ATTR_DISK_WRITE_MAX_PS_MB,
+    # ATTR_DISK_READ_MAX_PS_MB, # Sensor removed
+    # ATTR_DISK_WRITE_MAX_PS_MB, # Sensor removed
     ATTR_NET_SENT_PS_MB,
     ATTR_NET_RECV_PS_MB,
-    ATTR_NET_SENT_MAX_PS_MB,
-    ATTR_NET_RECV_MAX_PS_MB,
+    # ATTR_NET_SENT_MAX_PS_MB, # Sensor removed
+    # ATTR_NET_RECV_MAX_PS_MB, # Sensor removed
     ATTR_TEMPERATURES,
     ATTR_EXTRA_FS,
     ATTR_GPU_DATA,
@@ -72,8 +72,8 @@ from .const import (
     ATTR_FS_DISK_PERCENT,
     ATTR_FS_DISK_READ_PS_MB,
     ATTR_FS_DISK_WRITE_PS_MB,
-    ATTR_FS_MAX_DISK_READ_PS_MB,
-    ATTR_FS_MAX_DISK_WRITE_PS_MB,
+    # ATTR_FS_MAX_DISK_READ_PS_MB, # Sensor removed
+    # ATTR_FS_MAX_DISK_WRITE_PS_MB, # Sensor removed
 )
 from .coordinator import BeszelDataUpdateCoordinator
 
@@ -141,16 +141,7 @@ SENSOR_TYPES_STATS = [
         "stats",
         True,
     ),
-    (
-        ATTR_CPU_MAX_PERCENT,
-        "CPU Max Usage",
-        PERCENTAGE,
-        SensorDeviceClass.POWER_FACTOR,
-        SensorStateClass.MEASUREMENT,
-        "mdi:cpu-64-bit",
-        "stats",
-        True,
-    ),
+    # ATTR_CPU_MAX_PERCENT sensor removed
     (
         ATTR_MEM_PERCENT,
         "Memory Usage",
@@ -273,84 +264,48 @@ SENSOR_TYPES_STATS = [
     ),
     (
         ATTR_DISK_READ_PS_MB,
-        "Disk Read Speed",
+        "Disk Read Speed Max", # Renamed
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-bold-circle-outline",
+        "mdi:arrow-down-bold-circle", # Icon updated
         "stats",
         True,
     ),
     (
         ATTR_DISK_WRITE_PS_MB,
-        "Disk Write Speed",
+        "Disk Write Speed Max", # Renamed
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:arrow-up-bold-circle-outline",
+        "mdi:arrow-up-bold-circle", # Icon updated
         "stats",
         True,
     ),
-    (
-        ATTR_DISK_READ_MAX_PS_MB,
-        "Disk Read Max Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-bold-circle",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_WRITE_MAX_PS_MB,
-        "Disk Write Max Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-up-bold-circle",
-        "stats",
-        True,
-    ),
+    # ATTR_DISK_READ_MAX_PS_MB sensor removed
+    # ATTR_DISK_WRITE_MAX_PS_MB sensor removed
     (
         ATTR_NET_SENT_PS_MB,
-        "Network Sent Speed",
+        "Network Sent Speed Max", # Renamed
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:upload-network-outline",  # Changed icon
+        "mdi:upload-network",  # Icon updated
         "stats",
         True,
     ),
     (
         ATTR_NET_RECV_PS_MB,
-        "Network Received Speed",
+        "Network Received Speed Max", # Renamed
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:download-network-outline",  # Changed icon
+        "mdi:download-network",  # Icon updated
         "stats",
         True,
     ),
-    (
-        ATTR_NET_SENT_MAX_PS_MB,
-        "Network Sent Max Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:upload-network",  # Changed icon
-        "stats",
-        True,
-    ),
-    (
-        ATTR_NET_RECV_MAX_PS_MB,
-        "Network Received Max Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:download-network",  # Changed icon
-        "stats",
-        True,
-    ),
+    # ATTR_NET_SENT_MAX_PS_MB sensor removed
+    # ATTR_NET_RECV_MAX_PS_MB sensor removed
     (
         "status",
         "Status",
@@ -570,40 +525,24 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
         ),
         (
             ATTR_FS_DISK_READ_PS_MB,
-            f"{fs_name} Read Speed",
+            f"{fs_name} Read Speed Max", # Renamed
             UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
-            "mdi:arrow-down-bold-circle-outline",
+            "mdi:arrow-down-bold-circle", # Icon updated
             True,
         ),
         (
             ATTR_FS_DISK_WRITE_PS_MB,
-            f"{fs_name} Write Speed",
+            f"{fs_name} Write Speed Max", # Renamed
             UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
-            "mdi:arrow-up-bold-circle-outline",
+            "mdi:arrow-up-bold-circle", # Icon updated
             True,
         ),
-        (
-            ATTR_FS_MAX_DISK_READ_PS_MB,
-            f"{fs_name} Max Read Speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-down-bold-circle",
-            True,
-        ),
-        (
-            ATTR_FS_MAX_DISK_WRITE_PS_MB,
-            f"{fs_name} Max Write Speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-up-bold-circle",
-            True,
-        ),
+        # ATTR_FS_MAX_DISK_READ_PS_MB sensor removed
+        # ATTR_FS_MAX_DISK_WRITE_PS_MB sensor removed
     ]
     for (
         api_key_suffix,
