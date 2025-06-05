@@ -30,7 +30,7 @@ class BeszelApiClient:
 
     async def async_authenticate(self) -> None:
         """Authenticate with the Beszel Hub."""
-        if self._is_authenticated and self._client.auth_store.is_valid:
+        if self._is_authenticated and self._client.auth_store.is_auth_valid():
             return
 
         _LOGGER.debug("Attempting authentication with Beszel Hub at %s", self._host)
@@ -49,7 +49,7 @@ class BeszelApiClient:
 
     async def _ensure_auth(self) -> None:
         """Ensure the client is authenticated before making a request."""
-        if not self._is_authenticated or not self._client.auth_store.is_valid:
+        if not self._is_authenticated or not self._client.auth_store.is_auth_valid():
             await self.async_authenticate()
 
     async def async_get_systems(self) -> List[Dict[str, Any]]:
