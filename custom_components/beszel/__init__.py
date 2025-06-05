@@ -4,7 +4,6 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD
 
 from .const import DOMAIN, PLATFORMS, DEFAULT_UPDATE_INTERVAL_SECONDS
 from .coordinator import BeszelDataUpdateCoordinator
@@ -17,9 +16,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Beszel from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    host = entry.data[CONF_HOST]
-    username = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]
+    host = entry.data["Host"]
+    username = entry.data["Username"]
+    password = entry.data["Password"]
 
     api_client = BeszelApiClient(host, username, password)
     await api_client.async_authenticate()  # Initial auth check
