@@ -2,6 +2,5 @@
   "name": "Beszel",
   "domains": ["sensor"],
   "render_readme": true,
-  "country": "US",
   "homeassistant": "2025.1.0"
 }
