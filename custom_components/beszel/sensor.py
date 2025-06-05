@@ -365,7 +365,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:arrow-up-network-outline",
+        "mdi:upload-network", # Changed icon
         "stats",
         True,
     ),
@@ -375,7 +375,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-network-outline",
+        "mdi:download-network", # Changed icon
         "stats",
         True,
     ),
@@ -911,6 +911,15 @@ class BeszelTemperatureSensor(BeszelSensor):
             True,
         )
         self._temp_sensor_key = temp_sensor_key
+
+    @property
+    def icon(self) -> str | None:
+        """Return the icon of the temperature sensor."""
+        key_lower = self._temp_sensor_key.lower()
+        # Check if "cpu" or "thermal" is in the sensor key, which often indicates a CPU temperature
+        if "cpu" in key_lower or "thermal" in key_lower:
+            return "mdi:cpu-64-bit"
+        return super().icon # Fallback to the default icon defined in BeszelSensor (mdi:thermometer)
 
     @property
     def native_value(self) -> Optional[float]:
