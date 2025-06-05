@@ -1,6 +1,5 @@
 """Sensor platform for Beszel."""
 
-import logging
 from typing import Any, Dict, Optional, List
 
 from homeassistant.components.sensor import (
@@ -309,20 +308,13 @@ async def async_setup_entry(
 
     entities_to_add: List[SensorEntity] = []
 
-    if coordinator.data:  # coordinator.data is Dict[system_id, system_data_dict]
+    if coordinator.data:
         for system_id, system_data in coordinator.data.items():
             if "error" in system_data:
-                _LOGGER.warning(
-                    "Skipping system %s due to previous error: %s",
-                    system_id,
-                    system_data["error"],
-                )
+                # Logged in coordinator, skip here
                 continue
 
             system_name = system_data.get("name", system_id)
-            _LOGGER.debug(
-                "Setting up sensors for system: %s (ID: %s)", system_name, system_id
-            )
 
             # Add static info sensors
             for (
@@ -428,8 +420,6 @@ async def async_setup_entry(
 
     if entities_to_add:
         async_add_entities(entities_to_add)
-    else:
-        _LOGGER.info("No systems or sensors to add for Beszel integration.")
 
 
 def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
@@ -710,8 +700,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             try:
                 total_seconds = float(raw_seconds_val)
             except (ValueError, TypeError):
-                # Could log an error or return the problematic value
-                return raw_seconds_val
+                return raw_seconds_val # Let HA handle bad type if it occurs
             
             if total_seconds < 0: # Uptime should not be negative
                 return None
@@ -760,8 +749,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             try:
                 return round(float(value), 2)
             except (ValueError, TypeError):
-                # Return original value if conversion fails
-                return value
+                return value # Let HA handle bad type if it occurs
         return value
 
     @property

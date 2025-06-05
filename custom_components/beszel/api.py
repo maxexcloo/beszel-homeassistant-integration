@@ -1,13 +1,10 @@
 """API for Beszel."""
 
 import asyncio
-import logging
 from typing import Any, List, Dict
 
 from pocketbase import PocketBase
 from pocketbase.utils import ClientResponseError, validate_token
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class BeszelApiAuthError(Exception):
@@ -37,7 +34,6 @@ class BeszelApiClient:
         ):
             return
 
-        _LOGGER.debug("Attempting authentication with Beszel Hub at %s", self._host)
         try:
             await asyncio.to_thread(
                 self._client.collection("users").auth_with_password,
@@ -45,10 +41,8 @@ class BeszelApiClient:
                 self._password,
             )
             self._is_authenticated = True
-            _LOGGER.info("Successfully authenticated with Beszel Hub")
         except ClientResponseError as e:
             self._is_authenticated = False
-            _LOGGER.error("Authentication failed: %s", e)
             raise BeszelApiAuthError("Authentication failed") from e
 
     async def _ensure_auth(self) -> None:
@@ -64,7 +58,6 @@ class BeszelApiClient:
     async def async_get_systems(self) -> List[Dict[str, Any]]:
         """Fetch all systems from the Beszel Hub."""
         await self._ensure_auth()
-        _LOGGER.debug("Fetching systems")
         try:
             records = await asyncio.to_thread(
                 self._client.collection("systems").get_full_list,
@@ -72,7 +65,6 @@ class BeszelApiClient:
             )
             return [vars(record) for record in records]
         except ClientResponseError as e:
-            _LOGGER.error("Error fetching systems: %s", e)
             if e.status == 401 or e.status == 403:
                 self._is_authenticated = False
                 raise BeszelApiAuthError(
@@ -85,7 +77,6 @@ class BeszelApiClient:
     ) -> Dict[str, Any] | None:
         """Fetch the latest stats for a specific system."""
         await self._ensure_auth()
-        _LOGGER.debug("Fetching latest stats for system ID: %s", system_id)
         try:
             records = await asyncio.to_thread(
                 self._client.collection("system_stats").get_full_list,
@@ -99,7 +90,6 @@ class BeszelApiClient:
                 return vars(records[0]).get("stats", {})
             return None
         except ClientResponseError as e:
-            _LOGGER.error("Error fetching stats for system %s: %s", system_id, e)
             if e.status == 401 or e.status == 403:
                 self._is_authenticated = False
                 raise BeszelApiAuthError(
@@ -107,5 +97,5 @@ class BeszelApiClient:
                 ) from e
             raise
         except IndexError:
-            _LOGGER.warning("No stats found for system ID: %s", system_id)
+            # This can happen if a system is registered but has no stats yet.
             return None
