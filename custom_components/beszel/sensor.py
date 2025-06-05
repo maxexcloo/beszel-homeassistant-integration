@@ -43,10 +43,10 @@ from .const import (
     ATTR_DISK_TOTAL_GB,
     ATTR_DISK_USED_GB,
     ATTR_DISK_PERCENT,
-    ATTR_DISK_READ_PS_MB, # Re-added
-    ATTR_DISK_WRITE_PS_MB, # Re-added
-    ATTR_NET_SENT_PS_MB, # Re-added
-    ATTR_NET_RECV_PS_MB, # Re-added
+    ATTR_DISK_READ_PS_MB,
+    ATTR_DISK_WRITE_PS_MB,
+    ATTR_NET_SENT_PS_MB,
+    ATTR_NET_RECV_PS_MB,
     ATTR_TEMPERATURES,
     ATTR_EXTRA_FS,
     ATTR_GPU_DATA,
@@ -58,8 +58,8 @@ from .const import (
     ATTR_FS_DISK_TOTAL_GB,
     ATTR_FS_DISK_USED_GB,
     ATTR_FS_DISK_PERCENT,
-    ATTR_FS_DISK_READ_PS_MB, # Re-added
-    ATTR_FS_DISK_WRITE_PS_MB, # Re-added
+    ATTR_FS_DISK_READ_PS_MB,
+    ATTR_FS_DISK_WRITE_PS_MB,
 )
 from .coordinator import BeszelDataUpdateCoordinator
 
