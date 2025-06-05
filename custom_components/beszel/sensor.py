@@ -395,7 +395,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-network",
+        "mdi:download-network",
         "stats",
         True,
     ),
