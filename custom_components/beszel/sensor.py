@@ -69,9 +69,9 @@ SENSOR_TYPES_INFO = [
     (
         ATTR_UPTIME,
         "Uptime",
-        UnitOfTime.SECONDS,
-        SensorDeviceClass.DURATION,
-        SensorStateClass.TOTAL_INCREASING,
+        None,  # Unit is dynamic
+        None,  # Device class is dynamic/none
+        SensorStateClass.MEASUREMENT,  # State class for dynamic unit
         "mdi:timer-sand",
         "info",
         True,
@@ -291,7 +291,7 @@ SENSOR_TYPES_STATS = [
         "mdi:server-network",
         "status",
         True,
-        ["up", "down", "paused", "pending", "unknown"],
+        ["Up", "Down", "paused", "pending", "unknown"],
     ),
 ]
 
@@ -637,6 +637,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         if device_class == SensorDeviceClass.ENUM and options:
             self._attr_options = options
 
+        # Initialize for uptime dynamic unit
+        self._calculated_unit_of_measurement: Optional[str] = None
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._system_id)},
             "name": self._system_name,
@@ -696,9 +699,49 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        if self._data_source_key == "status":
-            return self.system_data.get("status", "unknown")
+        # Handle Uptime sensor with dynamic units
+        if self._api_key == ATTR_UPTIME and self._data_source_key == "info":
+            # Reset calculated unit first, will be None if not determined
+            self._calculated_unit_of_measurement = self._attr_native_unit_of_measurement
 
+            raw_seconds_val = self.system_data.get("info", {}).get(ATTR_UPTIME)
+            if raw_seconds_val is None:
+                return None
+            try:
+                total_seconds = float(raw_seconds_val)
+            except (ValueError, TypeError):
+                # Could log an error or return the problematic value
+                return raw_seconds_val
+            
+            if total_seconds < 0: # Uptime should not be negative
+                return None
+
+            val: float
+            unit: str
+            if total_seconds < 60:
+                val, unit = total_seconds, UnitOfTime.SECONDS
+            elif total_seconds < 3600:  # Less than 1 hour
+                val, unit = round(total_seconds / 60, 1), UnitOfTime.MINUTES
+            elif total_seconds < 86400:  # Less than 1 day
+                val, unit = round(total_seconds / 3600, 2), UnitOfTime.HOURS
+            else:  # Days
+                val, unit = round(total_seconds / 86400, 2), UnitOfTime.DAYS
+            
+            self._calculated_unit_of_measurement = unit
+            if unit == UnitOfTime.SECONDS:
+                return int(val) if val.is_integer() else val
+            return val
+
+        # Handle Status sensor capitalization
+        if self._data_source_key == "status":
+            current_status = self.system_data.get("status", "unknown")
+            if current_status == "up":
+                return "Up"
+            if current_status == "down":
+                return "Down"
+            return current_status
+
+        # Default handling for other sensors
         data_dict = self.system_data.get(self._data_source_key, {})
 
         if not isinstance(data_dict, dict):
@@ -710,7 +753,6 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         value = data_dict.get(self._api_key)
 
         # If a data rate key is missing, assume its value is 0.0.
-        # This ensures the sensor is created even if the API omits the key for zero values.
         if value is None and self._attr_native_unit_of_measurement == UnitOfDataRate.MEGABYTES_PER_SECOND:
             value = 0.0
 
@@ -721,8 +763,18 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             try:
                 return round(float(value), 2)
             except (ValueError, TypeError):
+                # Return original value if conversion fails
                 return value
         return value
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the dynamic unit of measurement for uptime, or default."""
+        if self._api_key == ATTR_UPTIME and self._data_source_key == "info":
+            # This relies on native_value having been called by HA
+            # to set _calculated_unit_of_measurement.
+            return self._calculated_unit_of_measurement
+        return super().native_unit_of_measurement
 
     @property
     def available(self) -> bool:
