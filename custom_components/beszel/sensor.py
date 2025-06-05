@@ -880,6 +880,22 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 return value  # Or None if preferred for non-numeric
         return value
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        coordinator_available = super().available
+
+        if not coordinator_available:
+            return False
+
+        if self._api_key == ATTR_AGENT_VERSION:
+            # Check the actual value that would be displayed for agent version
+            value = self.system_data.get("agent_version_from_record", "unknown")
+            if value == "unknown":
+                return False
+        
+        return True
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
