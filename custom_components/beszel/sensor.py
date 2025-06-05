@@ -100,7 +100,7 @@ SENSOR_TYPES_INFO = [
         None,
         "mdi:information-outline",
         "agent_version_from_record",
-        False,
+        True,
     ),
     (
         ATTR_OS,
@@ -110,7 +110,7 @@ SENSOR_TYPES_INFO = [
         None,
         "mdi:linux",
         "info",
-        False,
+        True,
     ),  # Icon can be dynamic
     (
         ATTR_KERNEL_VERSION,
@@ -120,11 +120,11 @@ SENSOR_TYPES_INFO = [
         None,
         "mdi:chip",
         "info",
-        False,
+        True,
     ),
-    (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", False),
-    (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", False),
-    (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", False),
+    (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", True),
+    (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", True),
+    (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", True),
     (
         ATTR_CPU_PERCENT_INFO,
         "Info CPU Usage",
@@ -133,7 +133,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:gauge",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_MEM_PERCENT_INFO,
@@ -143,7 +143,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:gauge",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_DISK_PERCENT_INFO,
@@ -153,7 +153,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:gauge",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_BANDWIDTH_MB,
@@ -163,7 +163,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:gauge",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_GPU_PERCENT_INFO,
@@ -173,7 +173,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:gauge",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_DASHBOARD_TEMP,
@@ -183,7 +183,7 @@ SENSOR_TYPES_INFO = [
         SensorStateClass.MEASUREMENT,
         "mdi:thermometer",
         "info",
-        False,
+        True,
     ),
     (
         ATTR_PODMAN,
@@ -193,7 +193,7 @@ SENSOR_TYPES_INFO = [
         None,
         "mdi:docker",
         "info",
-        False,
+        True,
         ["False", "True"],
     ),
 ]
@@ -217,7 +217,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:cpu-64-bit",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_MEM_PERCENT,
@@ -247,7 +247,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:memory",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_MEM_BUFF_CACHE_GB,
@@ -257,7 +257,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:memory",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_MEM_ZFS_ARC_GB,
@@ -267,7 +267,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:memory",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_SWAP_PERCENT,
@@ -297,7 +297,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_SWAP_TOTAL_GB,
@@ -307,7 +307,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_DISK_PERCENT,
@@ -337,7 +337,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_DISK_READ_PS_MB,
@@ -367,7 +367,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:arrow-down-bold-circle",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_DISK_WRITE_MAX_PS_MB,
@@ -377,7 +377,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:arrow-up-bold-circle",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_NET_SENT_PS_MB,
@@ -407,7 +407,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:arrow-up-network-outline",
         "stats",
-        False,
+        True,
     ),
     (
         ATTR_NET_RECV_MAX_PS_MB,
@@ -417,7 +417,7 @@ SENSOR_TYPES_STATS = [
         SensorStateClass.MEASUREMENT,
         "mdi:arrow-down-network-outline",
         "stats",
-        False,
+        True,
     ),
     (
         "status",
@@ -606,7 +606,7 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             SensorDeviceClass.DATA_SIZE,
             SensorStateClass.MEASUREMENT,
             "mdi:harddisk",
-            False,
+            True,
         ),
         (
             ATTR_FS_DISK_READ_PS_MB,
@@ -633,7 +633,7 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
             "mdi:arrow-down-bold-circle",
-            False,
+            True,
         ),
         (
             ATTR_FS_MAX_DISK_WRITE_PS_MB,
@@ -642,7 +642,7 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             SensorDeviceClass.DATA_RATE,
             SensorStateClass.MEASUREMENT,
             "mdi:arrow-up-bold-circle",
-            False,
+            True,
         ),
     ]
     for (
@@ -707,7 +707,7 @@ def _create_gpu_sensors(
             SensorDeviceClass.DATA_SIZE,
             SensorStateClass.MEASUREMENT,
             "mdi:memory",
-            False,
+            True,
         ),
         (
             ATTR_GPU_POWER_W,
