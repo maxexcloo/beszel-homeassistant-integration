@@ -406,22 +406,33 @@ async def async_setup_entry(
                 *rest,
             ) in SENSOR_TYPES_INFO:
                 options = rest[0] if rest else None
-                entities_to_add.append(
-                    BeszelSensor(
-                        coordinator,
-                        system_id,
-                        system_name,
-                        api_key,
-                        name_suffix,
-                        unit,
-                        dev_class,
-                        state_class,
-                        icon,
-                        data_key,  # e.g., "device_info_summary" or "agent_version_from_record"
-                        enabled,
-                        options=options,
-                    )
+                sensor = BeszelSensor(
+                    coordinator,
+                    system_id,
+                    system_name,
+                    api_key,
+                    name_suffix,
+                    unit,
+                    dev_class,
+                    state_class,
+                    icon,
+                    data_key,
+                    enabled,
+                    options=options,
                 )
+                # Only add sensor if its initial value is known
+                value = sensor.native_value
+                if value is not None and not (
+                    isinstance(value, str) and value.lower() == "unknown"
+                ):
+                    entities_to_add.append(sensor)
+                else:
+                    _LOGGER.debug(
+                        "Skipping sensor %s for system %s due to unknown/None initial value: %s",
+                        name_suffix,
+                        system_name,
+                        value,
+                    )
 
             # Add dynamic stats sensors
             for (
@@ -437,35 +448,52 @@ async def async_setup_entry(
             ) in SENSOR_TYPES_STATS:
                 options = rest[0] if rest and len(rest) > 0 else None
                 value_func = rest[1] if rest and len(rest) > 1 else None
-                entities_to_add.append(
-                    BeszelSensor(
-                        coordinator,
-                        system_id,
-                        system_name,
-                        api_key,
-                        name_suffix,
-                        unit,
-                        dev_class,
-                        state_class,
-                        icon,
-                        data_key,  # e.g., "stats" or "status"
-                        enabled,
-                        options=options,
-                        value_func=value_func,
-                    )
+                sensor = BeszelSensor(
+                    coordinator,
+                    system_id,
+                    system_name,
+                    api_key,
+                    name_suffix,
+                    unit,
+                    dev_class,
+                    state_class,
+                    icon,
+                    data_key,
+                    enabled,
+                    options=options,
+                    value_func=value_func,
                 )
+                # Only add sensor if its initial value is known
+                value = sensor.native_value
+                if value is not None and not (
+                    isinstance(value, str) and value.lower() == "unknown"
+                ):
+                    entities_to_add.append(sensor)
+                else:
+                    _LOGGER.debug(
+                        "Skipping sensor %s for system %s due to unknown/None initial value: %s",
+                        name_suffix,
+                        system_name,
+                        value,
+                    )
 
             # Add temperature sensors (if any)
             temps = system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
             for temp_sensor_name in temps:
-                entities_to_add.append(
-                    BeszelTemperatureSensor(
-                        coordinator,
-                        system_id,
-                        system_name,
-                        temp_sensor_name,
-                    )
+                sensor = BeszelTemperatureSensor(
+                    coordinator,
+                    system_id,
+                    system_name,
+                    temp_sensor_name,
                 )
+                if sensor.native_value is not None:
+                    entities_to_add.append(sensor)
+                else:
+                    _LOGGER.debug(
+                        "Skipping temperature sensor %s for system %s due to None initial value.",
+                        temp_sensor_name,
+                        system_name,
+                    )
 
             # Add Extra Filesystem sensors
             extra_fs_data = system_data.get("stats", {}).get(ATTR_EXTRA_FS, {})
@@ -588,23 +616,30 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
         *rest,
     ) in fs_sensor_types:
         value_func = rest[0] if rest else None
-        sensors.append(
-            BeszelNestedSensor(
-                coordinator,
-                system_id,
-                system_name,
-                ATTR_EXTRA_FS,
-                fs_name,
-                api_key_suffix,
-                name_suffix_full,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                enabled,
-                value_func=value_func,
-            )
+        sensor = BeszelNestedSensor(
+            coordinator,
+            system_id,
+            system_name,
+            ATTR_EXTRA_FS,
+            fs_name,
+            api_key_suffix,
+            name_suffix_full,
+            unit,
+            dev_class,
+            state_class,
+            icon,
+            enabled,
+            value_func=value_func,
         )
+        if sensor.native_value is not None:
+            sensors.append(sensor)
+        else:
+            _LOGGER.debug(
+                "Skipping extra_fs sensor %s for fs %s on system %s due to None initial value.",
+                name_suffix_full,
+                fs_name,
+                system_name,
+            )
     return sensors
 
 
@@ -663,22 +698,29 @@ def _create_gpu_sensors(
         icon,
         enabled,
     ) in gpu_sensor_types:
-        sensors.append(
-            BeszelNestedSensor(
-                coordinator,
-                system_id,
-                system_name,
-                ATTR_GPU_DATA,
-                gpu_id_key,
-                api_key_suffix,
-                name_suffix_full,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                enabled,
-            )
+        sensor = BeszelNestedSensor(
+            coordinator,
+            system_id,
+            system_name,
+            ATTR_GPU_DATA,
+            gpu_id_key,
+            api_key_suffix,
+            name_suffix_full,
+            unit,
+            dev_class,
+            state_class,
+            icon,
+            enabled,
         )
+        if sensor.native_value is not None:
+            sensors.append(sensor)
+        else:
+            _LOGGER.debug(
+                "Skipping GPU sensor %s for GPU %s on system %s due to None initial value.",
+                name_suffix_full,
+                gpu_name_display,
+                system_name,
+            )
     return sensors
 
 
