@@ -15,17 +15,17 @@ DEFAULT_UPDATE_INTERVAL_SECONDS = 60
 # Attribute names from Beszel API (SystemInfo)
 ATTR_HOSTNAME = "h"
 ATTR_KERNEL_VERSION = "k"
-ATTR_CPU_PERCENT_INFO = "cpu"  # System-wide CPU from info, distinct from stats
+# ATTR_CPU_PERCENT_INFO = "cpu" # Removed, use stats version
 ATTR_THREADS = "t"
 ATTR_CORES = "c"
 ATTR_CPU_MODEL = "m"
 ATTR_UPTIME = "u"
-ATTR_MEM_PERCENT_INFO = "mp"  # System-wide Mem % from info
-ATTR_DISK_PERCENT_INFO = "dp"  # System-wide Disk % from info
+# ATTR_MEM_PERCENT_INFO = "mp" # Removed, use stats version
+# ATTR_DISK_PERCENT_INFO = "dp" # Removed, use stats version
 ATTR_BANDWIDTH_MB = "b"
 ATTR_AGENT_VERSION = "v"
 ATTR_PODMAN = "p"
-ATTR_GPU_PERCENT_INFO = "g"  # System-wide GPU % from info
+# ATTR_GPU_PERCENT_INFO = "g" # Removed, use per-GPU stats version
 ATTR_DASHBOARD_TEMP = "dt"
 ATTR_OS = "os"
 
