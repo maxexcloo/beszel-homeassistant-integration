@@ -32,11 +32,11 @@ from .const import (
     ATTR_UPTIME,
     # ATTR_MEM_PERCENT_INFO, # Removed, use stats version
     # ATTR_DISK_PERCENT_INFO, # Removed, use stats version
-    ATTR_BANDWIDTH_MB,
+    # ATTR_BANDWIDTH_MB, # Sensor removed
     ATTR_AGENT_VERSION,
     # ATTR_PODMAN, # Sensor removed
     # ATTR_GPU_PERCENT_INFO, # Removed, use per-GPU stats version
-    ATTR_DASHBOARD_TEMP,
+    # ATTR_DASHBOARD_TEMP, # Sensor removed
     ATTR_OS,
     ATTR_CPU_PERCENT,
     ATTR_CPU_MAX_PERCENT,
@@ -99,7 +99,7 @@ SENSOR_TYPES_INFO = [
         None,
         None,
         "mdi:information-outline",
-        "agent_version_from_record",
+        "info",  # Agent version is expected in the "info" dict with key ATTR_AGENT_VERSION ('v')
         True,
     ),
     (
@@ -125,26 +125,8 @@ SENSOR_TYPES_INFO = [
     (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", True),
     (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", True),
     (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", True),
-    (
-        ATTR_BANDWIDTH_MB,
-        "Info Max Network Rate",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:gauge",
-        "info",
-        True,
-    ),
-    (
-        ATTR_DASHBOARD_TEMP,
-        "Info Dashboard Temperature",
-        UnitOfTemperature.CELSIUS,
-        SensorDeviceClass.TEMPERATURE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:thermometer",
-        "info",
-        True,
-    ),
+    # ATTR_BANDWIDTH_MB ("Info Max Network Rate") sensor removed
+    # ATTR_DASHBOARD_TEMP ("Info Dashboard Temperature") sensor removed
     # Podman sensor removed
 ]
 
@@ -335,7 +317,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:upload-network",
+        "mdi:upload-network-outline", # Changed icon
         "stats",
         True,
     ),
@@ -345,7 +327,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:download-network",
+        "mdi:download-network-outline", # Changed icon
         "stats",
         True,
     ),
@@ -751,8 +733,8 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         # Try to get agent version and OS from initial data for device info
         initial_system_data = coordinator.data.get(self._system_id, {})
         if initial_system_data and not initial_system_data.get("error"):
-            agent_version = initial_system_data.get(
-                "agent_version_from_record", "Unknown"
+            agent_version = initial_system_data.get("info", {}).get(
+                ATTR_AGENT_VERSION, "Unknown"
             )
             os_type_raw = initial_system_data.get("info", {}).get(ATTR_OS)
             os_name = self._map_os_type_to_name(os_type_raw)
@@ -803,16 +785,23 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
+        # data_source_key can be "info", "stats", or "status"
+        # self.system_data is the full data dict for the system from the coordinator
+
+        if self._data_source_key == "status":
+            return self.system_data.get("status", "unknown")
+
+        # For "info" and "stats", data_dict will be the respective sub-dictionary
         data_dict = self.system_data.get(self._data_source_key, {})
 
-        if self._data_source_key == "status":  # Special case for top-level status
-            return self.system_data.get("status", "unknown")
-        if self._data_source_key == "agent_version_from_record":
-            return self.system_data.get("agent_version_from_record", "unknown")
-
-        if not isinstance(data_dict, dict):  # Ensure it's a dict before .get()
-            if self._api_key == self._data_source_key:  # e.g. for status
-                return data_dict  # return the value directly
+        if not isinstance(data_dict, dict):
+            # This might happen if system_data is malformed or data_source_key is unexpected
+            # and doesn't point to a dictionary.
+            _LOGGER.debug(
+                "Data source key %s for sensor %s did not yield a dictionary.",
+                self._data_source_key,
+                self.unique_id,
+            )
             return None
 
         if self._value_func:
@@ -850,7 +839,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         # Update device info if agent version or OS changes
         current_data = self.coordinator.data.get(self._system_id, {})
         if current_data and not current_data.get("error"):
-            new_agent_version = current_data.get("agent_version_from_record")
+            new_agent_version = current_data.get("info", {}).get(ATTR_AGENT_VERSION)
             new_os_raw = current_data.get("info", {}).get(ATTR_OS)
             new_os_name = self._map_os_type_to_name(new_os_raw)
 
@@ -886,10 +875,18 @@ class BeszelTemperatureSensor(BeszelSensor):
     ) -> None:
         """Initialize the temperature sensor."""
         self._temp_sensor_key = temp_sensor_key
-        name_to_use = f"Temperature {temp_sensor_key.replace('_', ' ').title()}"
         key_lower_for_name = temp_sensor_key.lower()
+        
+        name_to_use: str
         if "cpu" in key_lower_for_name and "thermal" in key_lower_for_name:
             name_to_use = "CPU Temperature"
+        else:
+            base_name_parts = temp_sensor_key.replace('_', ' ').split(' ')
+            titled_parts = [part.title() for part in base_name_parts]
+            # Specifically capitalize "NVME" if present
+            final_parts = ["NVME" if part.lower() == "nvme" else part for part in titled_parts]
+            processed_key_name = " ".join(final_parts)
+            name_to_use = f"Temperature {processed_key_name}"
 
         super().__init__(
             coordinator,

@@ -113,11 +113,9 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "stats": stats or {},
             # "info" key is now populated by device_info_summary for consistency,
             # as the separate async_get_system_info call was redundant.
-            "info": device_info_summary,
+            "info": device_info_summary,  # device_info_summary now contains 'v' if provided by API
             "status": (
                 system_record.get("status", "unknown") if system_record else "unknown"
             ),
-            "agent_version_from_record": (
-                system_record.get("v", "unknown") if system_record else "unknown"
-            ),  # Agent version from system record
+            # "agent_version_from_record" is removed. Agent version is now part of "info".
         }
