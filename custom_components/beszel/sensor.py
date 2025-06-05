@@ -735,11 +735,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         # Handle Status sensor capitalization
         if self._data_source_key == "status":
             current_status = self.system_data.get("status", "unknown")
-            if current_status == "up":
-                return "Up"
-            if current_status == "down":
-                return "Down"
-            # For other statuses like "paused", "pending", "unknown"
+            # .title() correctly handles "up" -> "Up", "down" -> "Down", etc.
             return current_status.title()
 
         # Default handling for other sensors
@@ -833,6 +829,9 @@ class BeszelTemperatureSensor(BeszelSensor):
             name_to_use = "CPU Temperature"
         else:
             processed_key_name = temp_sensor_key.replace("_", " ").title()
+            # Ensure NVME is fully capitalized if present
+            if "Nvme" in processed_key_name:
+                processed_key_name = processed_key_name.replace("Nvme", "NVME")
             name_to_use = f"Temperature {processed_key_name}"
 
         super().__init__(
