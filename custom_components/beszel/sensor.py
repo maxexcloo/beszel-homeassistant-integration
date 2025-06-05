@@ -832,12 +832,7 @@ class BeszelTemperatureSensor(BeszelSensor):
         if "cpu" in key_lower_for_name and "thermal" in key_lower_for_name:
             name_to_use = "CPU Temperature"
         else:
-            base_name_parts = temp_sensor_key.replace("_", " ").split(" ")
-            titled_parts = [part.title() for part in base_name_parts]
-            final_parts = [
-                "NVME" if part.lower() == "nvme" else part for part in titled_parts
-            ]
-            processed_key_name = " ".join(final_parts)
+            processed_key_name = temp_sensor_key.replace("_", " ").title()
             name_to_use = f"Temperature {processed_key_name}"
 
         super().__init__(
