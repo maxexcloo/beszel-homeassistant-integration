@@ -84,12 +84,10 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     async def _fetch_individual_system_data(self, system_id: str, system_name: str) -> Dict[str, Any]:
         """Fetch stats and info for a single system."""
         stats = await self.api_client.async_get_latest_system_stats(system_id)
-        info = await self.api_client.async_get_system_info(system_id) # System info from 'systems' collection
         
-        # The 'info' field from the system record itself (not the separate system_info call)
-        # is what's shown in the Beszel UI's system list.
-        # The 'system_stats' collection contains detailed metrics.
-        # The 'systems' collection record for a system also has an 'info' field which is a summary.
+        # The 'info' field from the system record itself (from self.systems_list)
+        # is what's shown in the Beszel UI's system list and contains the summary info.
+        # This is now the sole source for "info" type data for sensors.
         
         system_record = next((s for s in self.systems_list if s.get("id") == system_id), None)
         device_info_summary = {}
@@ -101,8 +99,10 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "id": system_id,
             "name": system_name,
             "stats": stats or {},
-            "info": info or {}, # Detailed info from system_info endpoint
-            "device_info_summary": device_info_summary, # Summary info from systems collection
+            # "info" key is now populated by device_info_summary for consistency,
+            # as the separate async_get_system_info call was redundant.
+            "info": device_info_summary, 
+            "device_info_summary": device_info_summary, # Retained for clarity if any sensor still uses it directly
             "status": system_record.get("status", "unknown") if system_record else "unknown",
             "agent_version_from_record": system_record.get("v", "unknown") if system_record else "unknown", # Agent version from system record
         }

@@ -351,19 +351,6 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 return value # Or None if preferred for non-numeric
         return value
 
-    @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return other attributes of the sensor."""
-        attrs = {}
-        if self._api_key == ATTR_HOSTNAME and self._data_source_key == "device_info_summary": # Hostname is part of device_info_summary
-            data_dict = self.system_data.get("device_info_summary", {})
-            attrs[ATTR_HOSTNAME] = data_dict.get(ATTR_HOSTNAME)
-            attrs[ATTR_CPU_MODEL] = data_dict.get(ATTR_CPU_MODEL)
-            attrs[ATTR_CORES] = data_dict.get(ATTR_CORES)
-            attrs[ATTR_THREADS] = data_dict.get(ATTR_THREADS)
-            attrs[ATTR_KERNEL_VERSION] = data_dict.get(ATTR_KERNEL_VERSION)
-        return attrs
-
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

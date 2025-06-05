@@ -92,20 +92,3 @@ class BeszelApiClient:
         except IndexError:
             _LOGGER.warning("No stats found for system ID: %s", system_id)
             return None
-
-    async def async_get_system_info(self, system_id: str) -> Dict[str, Any] | None:
-        """Fetch the info for a specific system."""
-        await self._ensure_auth()
-        _LOGGER.debug("Fetching info for system ID: %s", system_id)
-        try:
-            record = await asyncio.to_thread(
-                self._client.collection("systems").get_one, system_id
-            )
-            return record.to_dict().get("info", {})
-        except ClientResponseError as e:
-            _LOGGER.error("Error fetching info for system %s: %s", system_id, e)
-            if e.status == 401 or e.status == 403:
-                 self._is_authenticated = False
-                 raise BeszelApiAuthError("Token likely expired, re-authentication needed") from e
-            raise
-        return None
