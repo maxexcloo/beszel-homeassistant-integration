@@ -20,7 +20,7 @@ class BeszelApiClient:
     def __init__(self, host: str, username: str, password: str) -> None:
         """Initialize the API client."""
         if not host.startswith(("http://", "https://")):
-            host = f"http://{host}" # Default to http
+            host = f"http://{host}"
         self._host = host
         self._username = username
         self._password = password
@@ -89,7 +89,7 @@ class BeszelApiClient:
         try:
             records = await asyncio.to_thread(
                 self._client.collection("system_stats").get_full_list,
-                batch=1, # Fetch only the most recent record
+                batch=1,
                 query_params={
                     "filter": f'system="{system_id}"',
                     "sort": "-created",

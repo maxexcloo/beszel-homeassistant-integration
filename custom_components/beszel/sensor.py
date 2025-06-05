@@ -43,10 +43,6 @@ from .const import (
     ATTR_DISK_TOTAL_GB,
     ATTR_DISK_USED_GB,
     ATTR_DISK_PERCENT,
-    # ATTR_DISK_READ_PS_MB, # Sensor removed
-    # ATTR_DISK_WRITE_PS_MB, # Sensor removed
-    # ATTR_NET_SENT_PS_MB, # Sensor removed
-    # ATTR_NET_RECV_PS_MB, # Sensor removed
     ATTR_TEMPERATURES,
     ATTR_EXTRA_FS,
     ATTR_GPU_DATA,
@@ -58,8 +54,6 @@ from .const import (
     ATTR_FS_DISK_TOTAL_GB,
     ATTR_FS_DISK_USED_GB,
     ATTR_FS_DISK_PERCENT,
-    # ATTR_FS_DISK_READ_PS_MB, # Sensor removed
-    # ATTR_FS_DISK_WRITE_PS_MB, # Sensor removed
 )
 from .coordinator import BeszelDataUpdateCoordinator
 
@@ -83,7 +77,7 @@ SENSOR_TYPES_INFO = [
         None,
         None,
         "mdi:information-outline",
-        "info",  # Agent version is expected in the "info" dict with key ATTR_AGENT_VERSION ('v')
+        "info",
         True,
     ),
     (
@@ -95,7 +89,7 @@ SENSOR_TYPES_INFO = [
         "mdi:linux",
         "info",
         True,
-    ),  # Icon can be dynamic
+    ),
     (
         ATTR_KERNEL_VERSION,
         "Kernel Version",
@@ -242,10 +236,6 @@ SENSOR_TYPES_STATS = [
         "stats",
         True,
     ),
-    # Disk Read Speed Max sensor removed
-    # Disk Write Speed Max sensor removed
-    # Network Sent Speed Max sensor removed
-    # Network Received Speed Max sensor removed
     (
         "status",
         "Status",
@@ -315,19 +305,11 @@ async def async_setup_entry(
                     enabled,
                     options=options,
                 )
-                # Only add sensor if its initial value is known
                 value = sensor.native_value
                 if value is not None and not (
                     isinstance(value, str) and value.lower() == "unknown"
                 ):
                     entities_to_add.append(sensor)
-                else:
-                    _LOGGER.debug(
-                        "Skipping sensor %s for system %s due to unknown/None initial value: %s",
-                        name_suffix,
-                        system_name,
-                        value,
-                    )
 
             # Add dynamic stats sensors
             for (
@@ -358,19 +340,11 @@ async def async_setup_entry(
                     options=options,
                     value_func=value_func,
                 )
-                # Only add sensor if its initial value is known
                 value = sensor.native_value
                 if value is not None and not (
                     isinstance(value, str) and value.lower() == "unknown"
                 ):
                     entities_to_add.append(sensor)
-                else:
-                    _LOGGER.debug(
-                        "Skipping sensor %s for system %s due to unknown/None initial value: %s",
-                        name_suffix,
-                        system_name,
-                        value,
-                    )
 
             # Add temperature sensors (if any)
             temps = system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
@@ -383,12 +357,6 @@ async def async_setup_entry(
                 )
                 if sensor.native_value is not None:
                     entities_to_add.append(sensor)
-                else:
-                    _LOGGER.debug(
-                        "Skipping temperature sensor %s for system %s due to None initial value.",
-                        temp_sensor_name,
-                        system_name,
-                    )
 
             # Add Extra Filesystem sensors
             extra_fs_data = system_data.get("stats", {}).get(ATTR_EXTRA_FS, {})
@@ -406,7 +374,7 @@ async def async_setup_entry(
                 gpu_stats,
             ) in (
                 gpu_data_map.items()
-            ):  # gpu_id might be a numeric string or a descriptive name
+            ):
                 gpu_name_from_stats = gpu_stats.get(ATTR_GPU_NAME, gpu_id)
                 entities_to_add.extend(
                     _create_gpu_sensors(
@@ -463,8 +431,6 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             "mdi:harddisk",
             True,
         ),
-        # ATTR_FS_DISK_READ_PS_MB (fs Read Speed Max) sensor removed
-        # ATTR_FS_DISK_WRITE_PS_MB (fs Write Speed Max) sensor removed
     ]
     for (
         api_key_suffix,
@@ -494,13 +460,6 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
         )
         if sensor.native_value is not None:
             sensors.append(sensor)
-        else:
-            _LOGGER.debug(
-                "Skipping extra_fs sensor %s for fs %s on system %s due to None initial value.",
-                name_suffix_full,
-                fs_name,
-                system_name,
-            )
     return sensors
 
 
@@ -546,9 +505,6 @@ def _create_gpu_sensors(
             "mdi:lightning-bolt",
             True,
         ),
-        # GPU Temperature is handled by BeszelTemperatureSensor if present in main ATTR_TEMPERATURES
-        # If GPU temps are only inside ATTR_GPU_DATA, a specific sensor would be needed here.
-        # Assuming Beszel puts GPU temps in the main ATTR_TEMPERATURES map for now.
     ]
     for (
         api_key_suffix,
@@ -575,13 +531,6 @@ def _create_gpu_sensors(
         )
         if sensor.native_value is not None:
             sensors.append(sensor)
-        else:
-            _LOGGER.debug(
-                "Skipping GPU sensor %s for GPU %s on system %s due to None initial value.",
-                name_suffix_full,
-                gpu_name_display,
-                system_name,
-            )
     return sensors
 
 
@@ -601,7 +550,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         device_class: Optional[SensorDeviceClass],
         state_class: Optional[SensorStateClass],
         icon: Optional[str],
-        data_source_key: str,  # "stats", "info", or "status"
+        data_source_key: str,
         enabled_by_default: bool = True,
         options: Optional[List[str]] = None,
         value_func=None,
@@ -611,29 +560,27 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         self._system_id = system_id
         self._system_name = system_name
         self._api_key = api_key
-        self._data_source_key = data_source_key  # Which part of system_data to use
+        self._data_source_key = data_source_key
         self._value_func = value_func
 
         self._attr_unique_id = (
             f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
         )
-        self._attr_name = f"{name_suffix}"  # HA will prefix with device name
+        self._attr_name = f"{name_suffix}"
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
         self._attr_state_class = state_class
-        self._icon_definition = icon  # Store for dynamic icon property
+        self._icon_definition = icon
         self._attr_entity_registry_enabled_default = enabled_by_default
         if device_class == SensorDeviceClass.ENUM and options:
             self._attr_options = options
 
-        # Device info for grouping sensors
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._system_id)},
             "name": self._system_name,
             "manufacturer": "Beszel",
             "model": "Monitored System",
         }
-        # Get agent version and OS from initial data for device info
         initial_system_data = coordinator.data.get(self._system_id, {})
         if initial_system_data and not initial_system_data.get("error"):
             agent_version = initial_system_data.get("info", {}).get(
@@ -643,12 +590,10 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             os_name = self._map_os_type_to_name(os_type_raw)
             self._attr_device_info["sw_version"] = agent_version
             if os_name != "Unknown":
-                self._attr_device_info["model"] = os_name  # Use OS as model
+                self._attr_device_info["model"] = os_name
 
     def _map_os_type_to_name(self, os_type_raw: Any) -> str:
-        """Map OS type code to a human-readable name.
-        Based on beszel/site/src/lib/enums.ts
-        """
+        """Map OS type code to a human-readable name."""
         if os_type_raw == 0:
             return "Linux"
         if os_type_raw == 1:
@@ -669,7 +614,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             return "mdi:microsoft-windows"
         if os_type_raw == 3:
             return "mdi:freebsd"
-        return None  # Fallback to default icon
+        return None
 
     @property
     def icon(self) -> str | None:
@@ -689,23 +634,12 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        # data_source_key can be "info", "stats", or "status"
-        # self.system_data is the full data dict for the system from the coordinator
-
         if self._data_source_key == "status":
             return self.system_data.get("status", "unknown")
 
-        # For "info" and "stats", data_dict will be the respective sub-dictionary
         data_dict = self.system_data.get(self._data_source_key, {})
 
         if not isinstance(data_dict, dict):
-            # This might happen if system_data is malformed or data_source_key is unexpected
-            # and doesn't point to a dictionary.
-            _LOGGER.debug(
-                "Data source key %s for sensor %s did not yield a dictionary.",
-                self._data_source_key,
-                self.unique_id,
-            )
             return None
 
         if self._value_func:
@@ -726,11 +660,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        # Check coordinator availability (last_update_success and coordinator.data is not None)
         if not super().available:
             return False
 
-        # Check if data for this specific system_id exists and has no error
         system_specific_data = self.coordinator.data.get(self._system_id)
         if not system_specific_data or "error" in system_specific_data:
             return False
@@ -739,7 +671,6 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        # Update device info if agent version or OS changes
         current_data = self.coordinator.data.get(self._system_id, {})
         if current_data and not current_data.get("error"):
             new_agent_version = current_data.get("info", {}).get(ATTR_AGENT_VERSION)
@@ -760,8 +691,6 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
                 self._attr_device_info["model"] = new_os_name
                 updated_device_info = True
 
-            # Device info is updated here, HA will pick it up as needed.
-
         super()._handle_coordinator_update()
 
 
@@ -773,7 +702,7 @@ class BeszelTemperatureSensor(BeszelSensor):
         coordinator: BeszelDataUpdateCoordinator,
         system_id: str,
         system_name: str,
-        temp_sensor_key: str,  # e.g., "coretemp_core0_input"
+        temp_sensor_key: str,
     ) -> None:
         """Initialize the temperature sensor."""
         self._temp_sensor_key = temp_sensor_key
@@ -785,7 +714,6 @@ class BeszelTemperatureSensor(BeszelSensor):
         else:
             base_name_parts = temp_sensor_key.replace("_", " ").split(" ")
             titled_parts = [part.title() for part in base_name_parts]
-            # Specifically capitalize "NVME" if present
             final_parts = [
                 "NVME" if part.lower() == "nvme" else part for part in titled_parts
             ]
@@ -796,8 +724,8 @@ class BeszelTemperatureSensor(BeszelSensor):
             coordinator,
             system_id,
             system_name,
-            temp_sensor_key,  # This will be the unique part of the ID
-            name_to_use,  # Name suffix
+            temp_sensor_key,
+            name_to_use,
             UnitOfTemperature.CELSIUS,
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
@@ -810,9 +738,9 @@ class BeszelTemperatureSensor(BeszelSensor):
     def icon(self) -> str | None:
         """Return the icon of the temperature sensor."""
         key_lower = self._temp_sensor_key.lower()
-        if "cpu" in key_lower or "thermal" in key_lower: # Prioritize CPU icon for CPU temps
+        if "cpu" in key_lower or "thermal" in key_lower:
             return "mdi:cpu-64-bit"
-        return super().icon # Fallback to default BeszelSensor icon (mdi:thermometer)
+        return super().icon
 
     @property
     def native_value(self) -> Optional[float]:
@@ -835,8 +763,8 @@ class BeszelNestedSensor(BeszelSensor):
         coordinator: BeszelDataUpdateCoordinator,
         system_id: str,
         system_name: str,
-        parent_key: str,  # e.g., ATTR_EXTRA_FS or ATTR_GPU_DATA
-        item_key: str,  # e.g., specific filesystem name or GPU ID/name
+        parent_key: str,
+        item_key: str,
         api_value_key: str,
         name_full: str,
         unit: Optional[str],
@@ -858,13 +786,13 @@ class BeszelNestedSensor(BeszelSensor):
             device_class,
             state_class,
             icon,
-            "stats", # Nested sensors derive data from the 'stats' part of the coordinator data
+            "stats",
             enabled_by_default,
             value_func=value_func,
         )
         self._parent_key = parent_key
         self._item_key = item_key
-        self._api_value_key = api_value_key  # The actual key for the value
+        self._api_value_key = api_value_key
 
     @property
     def native_value(self) -> Any:

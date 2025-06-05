@@ -45,7 +45,7 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
             except ClientResponseError as exc:
                 _LOGGER.error("PocketBase API error during connection setup: %s", exc)
                 errors["base"] = "cannot_connect"
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:
                 _LOGGER.exception("Unexpected exception during setup: %s", exc)
                 errors["base"] = "unknown"
             else:

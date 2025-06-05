@@ -47,7 +47,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             tasks = []
             for system in self.systems_list:
                 system_id = system.get("id")
-                if not system_id: # Should ideally not happen
+                if not system_id:
                     continue
 
                 tasks.append(
@@ -71,7 +71,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     all_system_data[system_id] = {"error": str(result)}
                 elif result:
                     all_system_data[system_id] = result
-                else: # Should not happen if _fetch_individual_system_data returns dict
+                else:
                     all_system_data[system_id] = {
                         "error": "Unknown error fetching data for system"
                     }
@@ -80,7 +80,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         except BeszelApiAuthError as err:
             raise UpdateFailed(f"Authentication error: {err}") from err
-        except Exception as err: # Catch any other exception during the update
+        except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
     async def _fetch_individual_system_data(
@@ -101,7 +101,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "id": system_id,
             "name": system_name,
             "stats": stats or {},
-            "info": device_info_summary, # Contains agent version 'v', OS, etc.
+            "info": device_info_summary,
             "status": (
                 system_record.get("status", "unknown") if system_record else "unknown"
             ),
