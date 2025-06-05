@@ -25,17 +25,17 @@ from homeassistant.const import (
 from .const import (
     DOMAIN,
     ATTR_KERNEL_VERSION,
-    ATTR_CPU_PERCENT_INFO,
+    # ATTR_CPU_PERCENT_INFO, # Removed, use stats version
     ATTR_THREADS,
     ATTR_CORES,
     ATTR_CPU_MODEL,
     ATTR_UPTIME,
-    ATTR_MEM_PERCENT_INFO,
-    ATTR_DISK_PERCENT_INFO,
+    # ATTR_MEM_PERCENT_INFO, # Removed, use stats version
+    # ATTR_DISK_PERCENT_INFO, # Removed, use stats version
     ATTR_BANDWIDTH_MB,
     ATTR_AGENT_VERSION,
     # ATTR_PODMAN, # Sensor removed
-    ATTR_GPU_PERCENT_INFO,
+    # ATTR_GPU_PERCENT_INFO, # Removed, use per-GPU stats version
     ATTR_DASHBOARD_TEMP,
     ATTR_OS,
     ATTR_CPU_PERCENT,
