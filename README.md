@@ -10,12 +10,13 @@ The `beszel` integration allows you to monitor system statistics from servers ru
     *   CPU (usage, model, cores, threads)
     *   Memory (used, total, percent, buffer/cache, ZFS ARC)
     *   Swap (used, total, percent)
-    *   Disk (used, total, percent, read/write speeds)
-    *   Network (sent/received speeds)
+    *   Disk (used, total, percent, read/write speeds, max read/write speeds)
+    *   Network (sent/received speeds, max sent/received speeds)
     *   System Uptime
     *   Agent Version
     *   OS and Kernel Version
-    *   Temperatures
+    *   System Status (up, down, etc.)
+    *   Temperatures (including specific CPU temperature if available)
     *   GPU statistics (if available)
     *   Per-filesystem statistics (if available)
 *   Configurable update interval.
@@ -24,7 +25,7 @@ The `beszel` integration allows you to monitor system statistics from servers ru
 ## Prerequisites
 
 *   A running instance of the Beszel agent/server that exposes an API endpoint.
-*   Home Assistant version 2025.x.x or newer.
+*   Home Assistant version 2025.1.0 or newer.
 
 ## Installation
 
@@ -33,7 +34,7 @@ The `beszel` integration allows you to monitor system statistics from servers ru
 1.  Ensure HACS is installed.
 2.  Go to HACS > Integrations.
 3.  Click the three dots in the top right corner and select "Custom repositories".
-4.  Enter the URL of this repository (`<your_repository_url>`) in the "Repository" field.
+4.  Enter the URL of this repository (`https://github.com/maxexcloo/beszel-homeassistant-integration`) in the "Repository" field.
 5.  Select "Integration" as the category.
 6.  Click "Add".
 7.  The "Beszel" integration should now appear in the HACS integrations list. Click "Install".
