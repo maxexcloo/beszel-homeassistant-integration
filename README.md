@@ -11,7 +11,6 @@ The `beszel` integration allows you to monitor system statistics from servers ru
     *   Memory (used, total, percent, buffer/cache, ZFS ARC)
     *   Swap (used, total, percent)
     *   Disk (used, total, percent)
-    *   Network (sent/received speeds)
     *   System Uptime
     *   Agent Version
     *   OS and Kernel Version
