@@ -365,7 +365,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:upload-network", # Changed icon
+        "mdi:upload-network",  # Changed icon
         "stats",
         True,
     ),
@@ -375,7 +375,7 @@ SENSOR_TYPES_STATS = [
         UnitOfDataRate.MEGABYTES_PER_SECOND,
         SensorDeviceClass.DATA_RATE,
         SensorStateClass.MEASUREMENT,
-        "mdi:download-network", # Changed icon
+        "mdi:download-network",  # Changed icon
         "stats",
         True,
     ),
@@ -739,7 +739,9 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
         self._data_source_key = data_source_key  # Which part of system_data to use
         self._value_func = value_func
 
-        self._attr_unique_id = f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
+        self._attr_unique_id = (
+            f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
+        )
         self._attr_name = f"{name_suffix}"  # HA will prefix with device name
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = device_class
@@ -853,7 +855,7 @@ class BeszelSensor(CoordinatorEntity[BeszelDataUpdateCoordinator], SensorEntity)
             value = self.system_data.get("agent_version_from_record", "unknown")
             if value == "unknown":
                 return False
-        
+
         return True
 
     @callback
@@ -919,7 +921,9 @@ class BeszelTemperatureSensor(BeszelSensor):
         # Check if "cpu" or "thermal" is in the sensor key, which often indicates a CPU temperature
         if "cpu" in key_lower or "thermal" in key_lower:
             return "mdi:cpu-64-bit"
-        return super().icon # Fallback to the default icon defined in BeszelSensor (mdi:thermometer)
+        return (
+            super().icon
+        )  # Fallback to the default icon defined in BeszelSensor (mdi:thermometer)
 
     @property
     def native_value(self) -> Optional[float]:
