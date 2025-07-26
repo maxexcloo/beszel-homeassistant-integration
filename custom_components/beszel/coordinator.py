@@ -1,9 +1,8 @@
 """DataUpdateCoordinator for the Beszel integration."""
 
 import asyncio
-from datetime import timedelta
 import logging
-from typing import Dict, Any, List
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -14,26 +13,21 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
+class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
     """Manages fetching data from the Beszel API."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        api_client: BeszelApiClient,
-        update_interval_seconds: int,
-    ) -> None:
+    def __init__(self, hass, api_client, update_interval_seconds):
         """Initialize the data update coordinator."""
-        self.api_client = api_client
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=update_interval_seconds),
         )
-        self.systems_list: List[Dict[str, Any]] = []
+        self.api_client = api_client
+        self.systems_list = []
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self):
         """Fetch data from API endpoint."""
         try:
             await self.api_client.async_authenticate()
@@ -43,7 +37,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 _LOGGER.info("No systems found.")
                 return {}
 
-            all_system_data: Dict[str, Any] = {}
+            all_system_data = {}
             tasks = []
             for system in self.systems_list:
                 system_id = system.get("id")
@@ -83,13 +77,10 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
-    async def _fetch_individual_system_data(
-        self, system_id: str, system_name: str
-    ) -> Dict[str, Any]:
+    async def _fetch_individual_system_data(self, system_id, system_name):
         """Fetch stats and 'info' for a single system."""
         stats = await self.api_client.async_get_latest_system_stats(system_id)
 
-        # 'info' comes from the system record obtained via async_get_systems()
         system_record = next(
             (s for s in self.systems_list if s.get("id") == system_id), None
         )
@@ -99,9 +90,9 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         return {
             "id": system_id,
+            "info": device_info_summary,
             "name": system_name,
             "stats": stats or {},
-            "info": device_info_summary,
             "status": (
                 system_record.get("status", "unknown") if system_record else "unknown"
             ),

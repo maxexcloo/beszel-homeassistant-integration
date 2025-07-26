@@ -4,25 +4,22 @@ from homeassistant.const import Platform
 
 DOMAIN = "beszel"
 
-CONF_HOST = "host"
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
-
 PLATFORMS = [Platform.SENSOR]
 
 DEFAULT_UPDATE_INTERVAL_SECONDS = 60
 
+# Time constants for uptime calculations
+SECONDS_PER_MINUTE = 60
+SECONDS_PER_HOUR = 3600
+SECONDS_PER_DAY = 86400
+
 # Attribute names from Beszel API (SystemInfo)
-ATTR_HOSTNAME = "h"
 ATTR_KERNEL_VERSION = "k"
 ATTR_THREADS = "t"
 ATTR_CORES = "c"
 ATTR_CPU_MODEL = "m"
 ATTR_UPTIME = "u"
-ATTR_BANDWIDTH_MB = "b"
 ATTR_AGENT_VERSION = "v"
-ATTR_PODMAN = "p"
-ATTR_DASHBOARD_TEMP = "dt"
 ATTR_OS = "os"
 
 # Attribute names from Beszel API (SystemStats)

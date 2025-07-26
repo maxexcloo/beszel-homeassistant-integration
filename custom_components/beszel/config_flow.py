@@ -1,15 +1,14 @@
 """Config flow for Beszel integration."""
 
 import logging
-from typing import Any
 
 import voluptuous as vol
 from pocketbase.utils import ClientResponseError
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 
-from .const import DOMAIN
 from .api import BeszelApiClient, BeszelApiAuthError
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,11 +26,9 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        errors: dict[str, str] = {}
+        errors = {}
         if user_input is not None:
             try:
                 api_client = BeszelApiClient(
