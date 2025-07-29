@@ -1,53 +1,74 @@
-# Claude Development Guide
+# CLAUDE.md - Development Guide
 
-## Build Commands
+## Project Overview
+**Purpose**: Home Assistant integration for Beszel server monitoring  
+**Status**: Active
 
-- Format code: `black custom_components/`
-- No specific build commands required - Home Assistant integration
+## Commands
+```bash
+# Development
+black custom_components/   # Format code
 
-## Code Structure
-
-```
-custom_components/beszel/
-├── __init__.py      # Integration entry point
-├── api.py          # Beszel API client  
-├── config_flow.py  # Configuration flow
-├── const.py        # Constants
-├── coordinator.py  # Data update coordinator
-├── manifest.json   # Integration manifest
-└── sensor.py       # Sensor entities
+# Build
+# No specific build commands required - Home Assistant integration
 ```
 
-## Dependencies
+## Tech Stack
+- **Language**: Python 3.12+
+- **Framework**: Home Assistant 2025.1.0+
+- **Testing**: Home Assistant testing framework
 
-- Home Assistant 2025.1.0+
-- pocketbase==0.15.0
+## Code Standards
 
-## Development Notes
+### Organization
+- **Config/Data**: Alphabetical and recursive (imports, dependencies, object keys)
+- **Documentation**: Sort sections, lists, and references alphabetically when logical
+- **Files**: Alphabetical in documentation and directories
+- **Functions**: Group by purpose, alphabetical within groups
+- **Variables**: Alphabetical within scope
 
-- Code formatted with black for consistency
-- Code organized alphabetically where possible (imports, methods, variables)
-- Config flow handles user setup and validation
-- Coordinator pattern for data updates
-- Integration uses PocketBase client for API communication  
-- No type hints used (following KISS principles)
-- Sensor entities created dynamically based on available metrics
+### Quality
+- **Comments**: Minimal - only for complex business logic
+- **Documentation**: Update README.md and docs with every feature change
+- **Formatting**: Run black before commits
+- **KISS principle**: Keep it simple - prefer readable code over clever code
+- **Naming**: Snake_case for Python, no type hints used
+- **Trailing newlines**: Required in all files
 
-## File Overview
+## Project Structure
+- **custom_components/beszel/**: Main integration directory
+- **__init__.py**: Integration entry point
+- **api.py**: Beszel API client using PocketBase
+- **config_flow.py**: Configuration flow UI
+- **const.py**: Constants and configuration
+- **coordinator.py**: Data update coordinator
+- **manifest.json**: Integration manifest
+- **sensor.py**: Sensor entity definitions
 
-- **api.py**: BeszelApiClient class handles authentication and data fetching
-- **config_flow.py**: User configuration interface and validation  
-- **coordinator.py**: DataUpdateCoordinator manages API polling
-- **sensor.py**: Sensor entity definitions and state management
+## Project Specs
+- **Dynamic Sensors**: Sensors created based on available server metrics
+- **Multi-System Support**: Monitor multiple Beszel instances
+- **Per-Device Sensors**: Individual sensors for GPUs and filesystems
+- **Coordinator Pattern**: Centralized data fetching and caching
+- **PocketBase Integration**: Uses pocketbase==0.15.0 for API communication
 
-## Key Features
+## README Guidelines
+- **Structure**: Title → Description → Quick Start → Features → Installation → Usage → Contributing
+- **Badges**: Include relevant status badges (build, version, license)
+- **Code examples**: Always include working examples in code blocks
+- **Installation**: Provide copy-paste commands that work
+- **Quick Start**: Get users running in under 5 minutes
 
-- Dynamic sensor creation based on available metrics
-- Error handling and connection validation
-- Multi-system support
-- Per-device sensors for GPUs and filesystems
-- Sorted alphabetically for maintainability
+## Git Workflow
+```bash
+# After every change
+black custom_components/
+git add . && git commit -m "type: description"
 
-## Testing
+# Always commit after verified working changes
+# Keep commits small and focused
+```
 
-Test manually through Home Assistant UI or use Home Assistant testing framework.
+---
+
+*Simple context for AI assistants working on this open source project.*
