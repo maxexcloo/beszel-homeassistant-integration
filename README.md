@@ -80,14 +80,6 @@ sensor.beszel_server_filesystem_root_percent
 4. Format code: `black custom_components/`
 5. Submit a pull request
 
-## Prerequisites
+## License
 
-- Beszel agent/server with API endpoint configured
-- Home Assistant 2025.1.0 or later
-- PocketBase API access to Beszel server
-
-## Support
-
-- **Documentation**: [GitHub Repository](https://github.com/maxexcloo/beszel-homeassistant-integration)
-- **Issues**: [Report bugs or request features](https://github.com/maxexcloo/beszel-homeassistant-integration/issues)
-- **HACS**: Available through Home Assistant Community Store
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
