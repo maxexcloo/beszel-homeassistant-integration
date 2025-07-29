@@ -1,6 +1,6 @@
 # Beszel Home Assistant Integration
 
-[![License](https://img.shields.io/badge/license-GNU%20AGPLv3-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-active-success)](https://img.shields.io/badge/status-active-success)
 [![HACS](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
 
