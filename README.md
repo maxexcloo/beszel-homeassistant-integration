@@ -1,8 +1,8 @@
 # Beszel Home Assistant Integration
 
+[![License](https://img.shields.io/badge/license-GNU%20AGPLv3-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-active-success)](https://img.shields.io/badge/status-active-success)
 [![HACS](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/maxexcloo/beszel-homeassistant-integration)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Monitor system statistics from Beszel servers in Home Assistant. This integration provides comprehensive system monitoring with dynamic sensor creation and multi-system support.
 
@@ -82,4 +82,4 @@ sensor.beszel_server_filesystem_root_percent
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU AGPLv3 License - see the [LICENSE](LICENSE) file for details.
