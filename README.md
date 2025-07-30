@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-active-success)](https://img.shields.io/badge/status-active-success)
-[![HACS](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
+[![HACS](https://img.shields.io/badge/HACS-orange.svg)](https://github.com/hacs/integration)
 
 Monitor system statistics from Beszel servers in Home Assistant. This integration provides comprehensive system monitoring with dynamic sensor creation and multi-system support.
 
