@@ -644,6 +644,9 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._api_key = api_key
+        self._data_source_key = data_source_key
+        self._system_id = system_id
+        self._system_name = system_name
         self._attr_device_class = device_class
         self._attr_entity_registry_enabled_default = enabled_by_default
         self._attr_name = f"{name_suffix}"
@@ -653,10 +656,7 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
             f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
         )
         self._calculated_unit_of_measurement = None
-        self._data_source_key = data_source_key
         self._icon_definition = icon
-        self._system_id = system_id
-        self._system_name = system_name
         self._value_func = value_func
 
         if device_class == SensorDeviceClass.ENUM and options:
