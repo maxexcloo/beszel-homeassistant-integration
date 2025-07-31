@@ -575,24 +575,36 @@ class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
         value_func=None,
     ):
         """Initialize the nested sensor."""
+        CoordinatorEntity.__init__(self, coordinator)
+        self._system_id = system_id
+        self._system_name = system_name
+        self._attr_device_class = device_class
+        self._attr_entity_registry_enabled_default = enabled_by_default
+        self._attr_name = name_full
+        self._attr_native_unit_of_measurement = unit
+        self._attr_state_class = state_class
+        self._attr_icon = icon
+        self._attr_has_entity_name = True
+
         unique_part = f"{parent_key}_{item_key}_{api_value_key}"
-        super().__init__(
-            coordinator,
-            system_id,
-            system_name,
-            unique_part,
-            name_full,
-            unit,
-            device_class,
-            state_class,
-            icon,
-            "stats",
-            enabled_by_default,
-            value_func=value_func,
-        )
+        self._attr_unique_id = f"{DOMAIN}_{system_id}_stats_{unique_part}"
+
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, system_id)},
+            "manufacturer": "Beszel",
+            "model": "Monitored System",
+            "name": system_name,
+        }
+
         self._api_value_key = api_value_key
         self._item_key = item_key
         self._parent_key = parent_key
+        self._value_func = value_func
+
+    @property
+    def system_data(self):
+        """Shortcut to get the data for this sensor's system."""
+        return self.coordinator.data.get(self._system_id, {})
 
     @property
     def native_value(self):
