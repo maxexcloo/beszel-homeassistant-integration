@@ -6,11 +6,17 @@
 
 ## Commands
 ```bash
-# Development
-black custom_components/   # Format code
-
 # Build
-# No specific build commands required - Home Assistant integration
+mise run build           # No build required for Home Assistant integration
+
+# Development
+mise run dev             # Development validation cycle
+
+# Format
+mise run fmt             # Code formatting
+
+# Check
+mise run check           # All validation (fmt)
 ```
 
 ## Tech Stack
@@ -21,7 +27,7 @@ black custom_components/   # Format code
 ## Code Standards
 
 ### Organization
-- **Config/Data**: Alphabetical and recursive (imports, dependencies, object keys)
+- **Config/Data**: Alphabetical and recursive (imports, dependencies, object keys, mise tasks)
 - **Documentation**: Sort sections, lists, and references alphabetically when logical
 - **Files**: Alphabetical in documentation and directories
 - **Functions**: Group by purpose, alphabetical within groups
@@ -30,7 +36,7 @@ black custom_components/   # Format code
 ### Quality
 - **Comments**: Minimal - only for complex business logic
 - **Documentation**: Update README.md and docs with every feature change
-- **Formatting**: Run black before commits
+- **Formatting**: Run `mise run fmt` before commits
 - **KISS principle**: Keep it simple - prefer readable code over clever code
 - **Naming**: Snake_case for Python, no type hints used
 - **Trailing newlines**: Required in all files
@@ -59,15 +65,25 @@ black custom_components/   # Format code
 - **Installation**: Provide copy-paste commands that work
 - **Quick Start**: Get users running in under 5 minutes
 
-## Git Workflow
-```bash
-# After every change
-black custom_components/
-git add . && git commit -m "type: description"
+## Development Workflow Standards
 
-# Always commit after verified working changes
-# Keep commits small and focused
-```
+### Environment Management
+- Use **mise** for consistent development environments
+- Define common tasks as mise scripts
+- Pin tool versions in `.mise.toml`
+
+### Required Development Tasks
+- **build**: No build required for Home Assistant integration
+- **check**: All validation (fmt)
+- **dev**: Development validation cycle
+- **fmt**: Code formatting
+- **test**: No testing framework configured
+
+## Error Handling Standards
+- **Contextual errors**: Include device and server context in logs
+- **Graceful degradation**: Continue with cached data during API failures
+- **Informative messages**: Clear error responses for debugging
+- **User-friendly output**: Meaningful status messages in Home Assistant
 
 ---
 

@@ -1,0 +1,22 @@
+[tools]
+python = "3.12"
+
+[tasks.build]
+description = "No build required for Home Assistant integration"
+run = "echo 'No build required - Home Assistant integration'"
+
+[tasks.check]
+description = "Run all checks (fmt)"
+depends = ["fmt"]
+
+[tasks.dev]
+description = "Development validation cycle"
+run = "black custom_components/"
+
+[tasks.fmt]
+description = "Format Python code"
+run = "black custom_components/"
+
+[tasks.test]
+description = "No testing framework configured"
+run = "echo 'No testing framework configured'"
