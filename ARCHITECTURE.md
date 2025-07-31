@@ -54,4 +54,3 @@ Home Assistant integration for monitoring Beszel server statistics with dynamic 
 ---
 
 *Technical architecture documentation for the Beszel Home Assistant Integration project.*
-
