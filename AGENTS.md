@@ -1,4 +1,4 @@
-# CLAUDE.md - Development Guide
+# AGENTS.md - Development Guide
 
 ## Project Overview
 **Purpose**: Home Assistant integration for Beszel server monitoring  
