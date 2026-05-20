@@ -10,7 +10,7 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/maxexcloo/beszel-homeassistant-integration/issues",
     "name": "Beszel",
-    "requirements": ["pocketbase==0.15.0"],
+    "requirements": ["pocketbase==0.17.3"],
     "ssdp": [],
     "version": "0.1.0",
     "zeroconf": []
