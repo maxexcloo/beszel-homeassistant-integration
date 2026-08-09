@@ -73,11 +73,11 @@ expires.
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Install the pinned development environment with `mise install`.
-3. Install test dependencies with `mise run setup`.
-4. Follow the repository standards in `AGENTS.md`.
-5. Run `mise run fmt` and `mise run check`.
-6. Submit a pull request with tests and documentation for behavioural changes.
+2. Install test dependencies with
+   `python3 -m pip install --requirement requirements_test.txt`.
+3. Follow the repository standards in `AGENTS.md`.
+4. Run Ruff and `python3 -m pytest`.
+5. Submit a pull request with tests and documentation for behavioural changes.
 
 ## License
 
