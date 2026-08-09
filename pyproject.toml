@@ -7,7 +7,7 @@ dependencies = []
 [dependency-groups]
 test = [
   "pocketbase==0.17.3",
-  "pytest-homeassistant-custom-component==0.13.338",
+  "pytest-homeassistant-custom-component==0.13.355",
 ]
 
 [tool.pytest.ini_options]
