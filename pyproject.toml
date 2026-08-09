@@ -1,0 +1,27 @@
+[project]
+name = "homeassistant-beszel-integration"
+version = "0.2.0"
+requires-python = ">=3.12.0"
+dependencies = []
+
+[dependency-groups]
+test = [
+  "pocketbase==0.17.3",
+  "pytest-homeassistant-custom-component==0.13.338",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+ignore = ["TRY003", "TRY300"]
+select = ["B", "E", "F", "I", "PERF", "SIM", "TRY", "UP"]
+
+[tool.uv]
+environments = ["python_full_version >= '3.14.2'"]

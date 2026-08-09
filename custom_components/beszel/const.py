@@ -2,57 +2,54 @@
 
 from homeassistant.const import Platform
 
+DEFAULT_UPDATE_INTERVAL_SECONDS = 60
 DOMAIN = "beszel"
-
 PLATFORMS = [Platform.SENSOR]
 
-DEFAULT_UPDATE_INTERVAL_SECONDS = 60
-
-# Time constants for uptime calculations
-SECONDS_PER_MINUTE = 60
-SECONDS_PER_HOUR = 3600
-SECONDS_PER_DAY = 86400
-
-# Attribute names from Beszel API (SystemInfo)
-ATTR_KERNEL_VERSION = "k"
-ATTR_THREADS = "t"
+# Beszel SystemInfo fields
+ATTR_AGENT_VERSION = "v"
 ATTR_CORES = "c"
 ATTR_CPU_MODEL = "m"
-ATTR_UPTIME = "u"
-ATTR_AGENT_VERSION = "v"
+ATTR_KERNEL_VERSION = "k"
 ATTR_OS = "os"
+ATTR_THREADS = "t"
+ATTR_UPTIME = "u"
 
-# Attribute names from Beszel API (SystemStats)
+# Beszel SystemStats fields
+ATTR_BATTERY = "bat"
 ATTR_CPU_PERCENT = "cpu"
-ATTR_MEM_TOTAL_GB = "m"
-ATTR_MEM_USED_GB = "mu"
-ATTR_MEM_PERCENT = "mp"
-ATTR_MEM_BUFF_CACHE_GB = "mb"
-ATTR_MEM_ZFS_ARC_GB = "mz"
-ATTR_SWAP_TOTAL_GB = "s"
-ATTR_SWAP_USED_GB = "su"
-ATTR_SWAP_PERCENT = "sp"
-ATTR_DISK_TOTAL_GB = "d"
-ATTR_DISK_USED_GB = "du"
+ATTR_DISK_IO_STATS = "dios"
 ATTR_DISK_PERCENT = "dp"
 ATTR_DISK_READ_PS_MB = "dr"
+ATTR_DISK_TOTAL_GB = "d"
+ATTR_DISK_USED_GB = "du"
 ATTR_DISK_WRITE_PS_MB = "dw"
-ATTR_NET_SENT_PS_MB = "ns"
-ATTR_NET_RECV_PS_MB = "nr"
-ATTR_TEMPERATURES = "t"
 ATTR_EXTRA_FS = "efs"
 ATTR_GPU_DATA = "g"
+ATTR_MEM_BUFF_CACHE_GB = "mb"
+ATTR_MEM_PERCENT = "mp"
+ATTR_MEM_TOTAL_GB = "m"
+ATTR_MEM_USED_GB = "mu"
+ATTR_MEM_ZFS_ARC_GB = "mz"
+ATTR_NET_RECV_PS_MB = "nr"
+ATTR_NET_SENT_PS_MB = "ns"
+ATTR_SWAP_PERCENT = "sp"
+ATTR_SWAP_TOTAL_GB = "s"
+ATTR_SWAP_USED_GB = "su"
+ATTR_TEMPERATURES = "t"
 
-# For GPUData
-ATTR_GPU_NAME = "n"
-ATTR_GPU_MEM_USED_MB = "mu"
-ATTR_GPU_MEM_TOTAL_MB = "mt"
-ATTR_GPU_USAGE_PERCENT = "u"
-ATTR_GPU_POWER_W = "p"
-
-# For ExtraFsStats
-ATTR_FS_DISK_TOTAL_GB = "d"
-ATTR_FS_DISK_USED_GB = "du"
+# Beszel ExtraFsStats fields
+ATTR_FS_DISK_IO_STATS = "dios"
 ATTR_FS_DISK_PERCENT = "dp"
 ATTR_FS_DISK_READ_PS_MB = "r"
+ATTR_FS_DISK_TOTAL_GB = "d"
+ATTR_FS_DISK_USED_GB = "du"
 ATTR_FS_DISK_WRITE_PS_MB = "w"
+
+# Beszel GPUData fields
+ATTR_GPU_MEM_TOTAL_MB = "mt"
+ATTR_GPU_MEM_USED_MB = "mu"
+ATTR_GPU_NAME = "n"
+ATTR_GPU_POWER_PACKAGE_W = "pp"
+ATTR_GPU_POWER_W = "p"
+ATTR_GPU_USAGE_PERCENT = "u"

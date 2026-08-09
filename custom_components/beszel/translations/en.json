@@ -1,0 +1,46 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This Beszel Hub account is already configured.",
+      "reauth_successful": "Authentication was updated successfully.",
+      "reconfigure_successful": "Configuration was updated successfully."
+    },
+    "error": {
+      "already_configured": "This Beszel Hub account is already configured.",
+      "cannot_connect": "Unable to connect to the Beszel Hub.",
+      "invalid_auth": "The username or password is invalid."
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Password"
+        },
+        "description": "Enter the current password for {name}."
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "The URL or IP address of the Beszel Hub.",
+          "username": "The Beszel Hub username or email address.",
+          "password": "The Beszel Hub password."
+        }
+      },
+      "user": {
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "The URL or IP address of the Beszel Hub.",
+          "username": "The Beszel Hub username or email address.",
+          "password": "The Beszel Hub password."
+        }
+      }
+    }
+  }
+}

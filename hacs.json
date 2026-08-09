@@ -1,6 +1,4 @@
 {
-  "domains": ["sensor"],
   "homeassistant": "2025.1.0",
-  "name": "Beszel",
-  "render_readme": true
+  "name": "Beszel"
 }

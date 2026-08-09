@@ -1,90 +1,61 @@
 # AGENTS.md - Development Guide
 
 ## Project Overview
-**Purpose**: Home Assistant integration for Beszel server monitoring  
-**Status**: Active
+
+Home Assistant integration for monitoring one or more Beszel Hubs and their systems.
 
 ## Commands
+
 ```bash
-# Build
-mise run build           # No build required for Home Assistant integration
-
-# Development
-mise run dev             # Development validation cycle
-
-# Format
-mise run fmt             # Code formatting
-
-# Check
-mise run check           # All validation (fmt)
+mise run build   # Confirm that no build is required
+mise run check   # Run linting, formatting checks, and tests
+mise run dev     # Run the development validation cycle
+mise run fmt     # Fix and format Python with Ruff
+mise run lint    # Check Python with Ruff
+mise run setup   # Install locked test dependencies
+mise run test    # Run pytest
 ```
-
-## Tech Stack
-- **Language**: Python 3.12+
-- **Framework**: Home Assistant 2025.1.0+
-- **Testing**: Home Assistant testing framework
 
 ## Code Standards
 
-### Organization
-- **Config/Data**: Alphabetical and recursive (imports, dependencies, object keys, mise tasks)
-- **Documentation**: Sort sections, lists, and references alphabetically when logical
-- **Files**: Alphabetical in documentation and directories
-- **Functions**: Group by purpose, alphabetical within groups
-- **Variables**: Alphabetical within scope
+### Organisation
+
+- Keep configuration, imports, mappings, tasks, and unordered peers alphabetical.
+- Keep interface, lifecycle, fallback, and procedural order when it is meaningful.
+- Group functions by purpose and sort them alphabetically within each group.
+- Use snake_case for project-owned Python names.
 
 ### Quality
-- **Comments**: Minimal - only for complex business logic
-- **Documentation**: Update README.md and docs with every feature change
-- **Formatting**: Run `mise run fmt` before commits
-- **KISS principle**: Keep it simple - prefer readable code over clever code
-- **Naming**: Snake_case for Python, no type hints used
-- **Trailing newlines**: Required in all files
+
+- Add focused Home Assistant tests for behavioural changes.
+- Keep comments minimal and limited to complex business logic.
+- Keep implementation simple and readable; do not add type hints.
+- Run `mise run fmt` and `mise run check` before committing.
+- Update `README.md` and architecture documentation with feature changes.
+- Use Ruff for Python formatting and linting; do not use Black.
+- Use trailing newlines in every file.
+
+## Error Handling
+
+- Include Beszel Hub and system context in logs.
+- Preserve cached system data during partial API failures.
+- Raise authentication failures so Home Assistant can start reauthentication.
+- Return unavailable data as `None`; do not convert missing measurements to zero.
 
 ## Project Structure
-- **custom_components/beszel/**: Main integration directory
-- **__init__.py**: Integration entry point
-- **api.py**: Beszel API client using PocketBase
-- **config_flow.py**: Configuration flow UI
-- **const.py**: Constants and configuration
-- **coordinator.py**: Data update coordinator
-- **manifest.json**: Integration manifest
-- **sensor.py**: Sensor entity definitions
 
-## Project Specs
-- **Dynamic Sensors**: Sensors created based on available server metrics
-- **Multi-System Support**: Monitor multiple Beszel instances
-- **Per-Device Sensors**: Individual sensors for GPUs and filesystems
-- **Coordinator Pattern**: Centralized data fetching and caching
-- **PocketBase Integration**: Uses pocketbase==0.15.0 for API communication
+- `custom_components/beszel/`: Integration implementation and translations.
+- `tests/`: Home Assistant integration tests.
+- `.github/workflows/`: Ruff, pytest, Hassfest, and HACS validation.
+- `.mise.toml`: Pinned tools and development tasks.
+- `ARCHITECTURE.md`: Technical design and data flow.
+- `README.md`: Installation, usage, and contribution guidance.
 
-## README Guidelines
-- **Structure**: Title → Description → Quick Start → Features → Installation → Usage → Contributing
-- **Badges**: Include relevant status badges (build, version, license)
-- **Code examples**: Always include working examples in code blocks
-- **Installation**: Provide copy-paste commands that work
-- **Quick Start**: Get users running in under 5 minutes
+## Project Specifications
 
-## Development Workflow Standards
-
-### Environment Management
-- Use **mise** for consistent development environments
-- Define common tasks as mise scripts
-- Pin tool versions in `.mise.toml`
-
-### Required Development Tasks
-- **build**: No build required for Home Assistant integration
-- **check**: All validation (fmt)
-- **dev**: Development validation cycle
-- **fmt**: Code formatting
-- **test**: No testing framework configured
-
-## Error Handling Standards
-- **Contextual errors**: Include device and server context in logs
-- **Graceful degradation**: Continue with cached data during API failures
-- **Informative messages**: Clear error responses for debugging
-- **User-friendly output**: Meaningful status messages in Home Assistant
-
----
-
-*Simple context for AI assistants working on this open source project.*
+- Coordinator-based polling every 60 seconds.
+- Dynamic discovery of systems, GPUs, filesystems, temperatures, and metrics.
+- Hub-scoped devices and entities for safe multi-Hub configuration.
+- PocketBase 0.17.3 API integration.
+- Python 3.12.0 or newer.
+- Home Assistant 2025.1.0 or newer.

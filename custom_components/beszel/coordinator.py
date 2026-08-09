@@ -4,10 +4,10 @@ import asyncio
 import logging
 from datetime import timedelta
 
-from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import BeszelApiClient, BeszelApiAuthError
+from .api import BeszelApiAuthError
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
     """Manages fetching data from the Beszel API."""
 
-    def __init__(self, hass, api_client, update_interval_seconds):
+    def __init__(self, hass, api_client, config_entry_id, update_interval_seconds):
         """Initialize the data update coordinator."""
         super().__init__(
             hass,
@@ -25,6 +25,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=update_interval_seconds),
         )
         self.api_client = api_client
+        self.config_entry_id = config_entry_id
         self.systems_list = []
 
     async def _async_update_data(self):
@@ -38,31 +39,37 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
                 return {}
 
             all_system_data = {}
-            tasks = []
-            for system in self.systems_list:
-                system_id = system.get("id")
-                if not system_id:
-                    continue
-
-                tasks.append(
-                    self._fetch_individual_system_data(
-                        system_id, system.get("name", system_id)
-                    )
+            systems_with_ids = [
+                system for system in self.systems_list if system.get("id")
+            ]
+            tasks = [
+                self._fetch_individual_system_data(
+                    system["id"], system.get("name", system["id"])
                 )
+                for system in systems_with_ids
+            ]
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for i, system in enumerate(self.systems_list):
-                system_id = system.get("id")
-                if not system_id:
-                    continue
-
-                result = results[i]
+            for system, result in zip(systems_with_ids, results, strict=True):
+                system_id = system["id"]
                 if isinstance(result, Exception):
                     _LOGGER.error(
-                        "Error fetching data for system %s: %s", system_id, result
+                        "Error fetching data for system %s (%s): %s",
+                        system.get("name", system_id),
+                        system_id,
+                        result,
                     )
-                    all_system_data[system_id] = {"error": str(result)}
+                    cached_data = (self.data or {}).get(system_id, {})
+                    all_system_data[system_id] = {
+                        **cached_data,
+                        "error": str(result),
+                        "id": system_id,
+                        "info": cached_data.get("info", system.get("info", {})),
+                        "name": system.get("name", system_id),
+                        "stats": cached_data.get("stats", {}),
+                        "status": system.get("status", "unknown"),
+                    }
                 elif result:
                     all_system_data[system_id] = result
                 else:
@@ -73,7 +80,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
             return all_system_data
 
         except BeszelApiAuthError as err:
-            raise UpdateFailed(f"Authentication error: {err}") from err
+            raise ConfigEntryAuthFailed(f"Authentication error: {err}") from err
         except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 

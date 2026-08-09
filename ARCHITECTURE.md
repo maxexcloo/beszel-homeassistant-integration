@@ -1,56 +1,47 @@
-# ARCHITECTURE.md - Technical Design
+# Architecture
 
 ## Overview
 
-Home Assistant integration for monitoring Beszel server statistics with dynamic sensor creation and multi-system support.
+The integration polls one or more Beszel Hubs through PocketBase and exposes each
+monitored system as a Home Assistant device with diagnostic sensors.
 
-## Core Components
+## Components
+
+### API Client
+
+- Authenticates against current `_superusers` and legacy `users` collections.
+- Normalises Hub URLs and refreshes expired authentication.
+- Runs the synchronous PocketBase client outside Home Assistant's event loop.
 
 ### Configuration Flow
-- **Config Entry**: User-friendly setup via Home Assistant UI
-- **Multi-Server**: Support for multiple Beszel instances
-- **Validation**: Connection testing during setup
+
+- Prevents duplicate Hub and account combinations.
+- Supports reauthentication and complete reconfiguration from the UI.
+- Tests credentials before creating or updating an entry.
 
 ### Data Coordinator
-- **Auto-Update**: 30-second polling interval with exponential backoff
-- **Caching**: In-memory data storage with error handling
-- **Thread Safety**: Async coordination for concurrent requests
 
-### Dynamic Sensors
-- **Auto-Discovery**: Sensors created based on available metrics
-- **Per-Device**: Individual sensors for GPUs and filesystems
-- **State Management**: Proper device class and unit of measurement assignment
+- Fetches the systems list once per 60-second update.
+- Fetches each system's latest statistics concurrently.
+- Preserves the last system snapshot when an individual request fails and marks
+  that system's entities unavailable until it recovers.
+- Raises global connection failures through Home Assistant's coordinator retry
+  handling.
+
+### Sensors
+
+- Discovers new systems and metrics after every coordinator update.
+- Exposes battery, CPU, disk, filesystem, GPU, memory, network, operating system,
+  swap, temperature, uptime, and status data when reported.
+- Scopes entity and device identifiers to the config entry so multiple Hubs cannot
+  collide.
+- Uses stable native units and returns `None` for data Beszel does not report.
 
 ## Data Flow
 
-1. **Initial Setup**: Config flow → Authentication → Server discovery → Sensor creation
-2. **Data Updates**: Timer trigger → API fetch → Data parse → Sensor update → State broadcast
-3. **Error Handling**: API failure → Cached data → Exponential backoff → Retry logic
-
-## API Integration
-
-### PocketBase Client
-- **Authentication**: Username/password with token refresh
-- **Data Fetching**: Systems and statistics endpoints
-- **Error Handling**: Connection timeouts and API failures
-
-### Server Metrics
-- **Agent Information**: Version tracking and system identification
-- **Hardware Stats**: CPU, memory, disk, GPU, and network metrics
-- **System Info**: Kernel version and OS details
-
-## Technology Stack
-
-### Backend
-- **Framework**: Home Assistant 2025.1.0+
-- **Language**: Python 3.12+
-- **API Client**: pocketbase==0.15.0
-
-### Integration Pattern
-- **Coordinator**: DataUpdateCoordinator for centralized updates
-- **Config Flow**: ConfigEntry for user setup
-- **Device Registry**: Automatic device creation and management
-
----
-
-*Technical architecture documentation for the Beszel Home Assistant Integration project.*
+1. The configuration flow validates and stores normalised Hub credentials.
+2. Integration setup performs the first coordinator refresh.
+3. The sensor platform creates entities for the reported snapshot.
+4. Each later refresh updates existing entities and discovers newly reported data.
+5. An individual system failure retains its cached snapshot while making that
+   system unavailable; successful systems continue updating.

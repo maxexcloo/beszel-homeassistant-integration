@@ -17,11 +17,17 @@ class BeszelApiClient:
         """Initialize the API client."""
         if not host.startswith(("http://", "https://")):
             host = f"http://{host}"
+        host = host.rstrip("/")
         self._client = PocketBase(host)
         self._host = host
         self._is_authenticated = False
         self._password = password
         self._username = username
+
+    @property
+    def host(self):
+        """Return the normalised Beszel Hub URL."""
+        return self._host
 
     async def _ensure_auth(self):
         """Ensure the client is authenticated before making a request."""
@@ -43,16 +49,23 @@ class BeszelApiClient:
         ):
             return
 
-        try:
-            await asyncio.to_thread(
-                self._client.collection("users").auth_with_password,
-                self._username,
-                self._password,
-            )
-            self._is_authenticated = True
-        except ClientResponseError as e:
-            self._is_authenticated = False
-            raise BeszelApiAuthError("Authentication failed") from e
+        last_error = None
+        for collection in ("_superusers", "users"):
+            try:
+                await asyncio.to_thread(
+                    self._client.collection(collection).auth_with_password,
+                    self._username,
+                    self._password,
+                )
+                self._is_authenticated = True
+                return
+            except ClientResponseError as err:
+                if err.status >= 500:
+                    raise
+                last_error = err
+
+        self._is_authenticated = False
+        raise BeszelApiAuthError("Authentication failed") from last_error
 
     async def async_get_latest_system_stats(self, system_id):
         """Fetch the latest stats for a specific system."""
@@ -70,15 +83,13 @@ class BeszelApiClient:
             if result.items:
                 return vars(result.items[0]).get("stats", {})
             return None
-        except ClientResponseError as e:
-            if e.status == 401 or e.status == 403:
+        except ClientResponseError as err:
+            if err.status in (401, 403):
                 self._is_authenticated = False
                 raise BeszelApiAuthError(
                     "Token likely expired, re-authentication needed"
-                ) from e
+                ) from err
             raise
-        except IndexError:
-            return None
 
     async def async_get_systems(self):
         """Fetch all systems from the Beszel Hub."""
@@ -89,10 +100,10 @@ class BeszelApiClient:
                 query_params={"sort": "-status,name"},
             )
             return [vars(record) for record in records]
-        except ClientResponseError as e:
-            if e.status == 401 or e.status == 403:
+        except ClientResponseError as err:
+            if err.status in (401, 403):
                 self._is_authenticated = False
                 raise BeszelApiAuthError(
                     "Token likely expired, re-authentication needed"
-                ) from e
+                ) from err
             raise

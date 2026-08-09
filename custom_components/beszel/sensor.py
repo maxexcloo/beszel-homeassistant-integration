@@ -1,7 +1,5 @@
 """Sensor platform for Beszel."""
 
-import logging
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -20,15 +18,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_AGENT_VERSION,
+    ATTR_BATTERY,
     ATTR_CORES,
     ATTR_CPU_MODEL,
     ATTR_CPU_PERCENT,
+    ATTR_DISK_IO_STATS,
     ATTR_DISK_PERCENT,
     ATTR_DISK_READ_PS_MB,
     ATTR_DISK_TOTAL_GB,
     ATTR_DISK_USED_GB,
     ATTR_DISK_WRITE_PS_MB,
     ATTR_EXTRA_FS,
+    ATTR_FS_DISK_IO_STATS,
     ATTR_FS_DISK_PERCENT,
     ATTR_FS_DISK_READ_PS_MB,
     ATTR_FS_DISK_TOTAL_GB,
@@ -38,6 +39,7 @@ from .const import (
     ATTR_GPU_MEM_TOTAL_MB,
     ATTR_GPU_MEM_USED_MB,
     ATTR_GPU_NAME,
+    ATTR_GPU_POWER_PACKAGE_W,
     ATTR_GPU_POWER_W,
     ATTR_GPU_USAGE_PERCENT,
     ATTR_KERNEL_VERSION,
@@ -56,11 +58,68 @@ from .const import (
     ATTR_THREADS,
     ATTR_UPTIME,
     DOMAIN,
-    SECONDS_PER_DAY,
-    SECONDS_PER_HOUR,
-    SECONDS_PER_MINUTE,
 )
-from .coordinator import BeszelDataUpdateCoordinator
+
+
+def _array_value(data, key, index, precision=2):
+    """Return a rounded value from a Beszel array metric."""
+    values = data.get(key)
+    if not isinstance(values, (list, tuple)) or len(values) <= index:
+        return None
+    value = values[index]
+    if value is None:
+        return None
+    try:
+        return round(float(value), precision)
+    except (TypeError, ValueError):
+        return None
+
+
+def _battery_percent(data):
+    """Return the Beszel battery percentage."""
+    if not _has_battery(data):
+        return None
+    value = _array_value(data, ATTR_BATTERY, 0, precision=0)
+    return int(value) if value is not None else None
+
+
+def _battery_state(data):
+    """Return the Beszel battery charge state."""
+    if not _has_battery(data):
+        return None
+    states = {
+        0: "Unknown",
+        1: "Empty",
+        2: "Full",
+        3: "Charging",
+        4: "Discharging",
+        5: "Idle",
+    }
+    value = _array_value(data, ATTR_BATTERY, 1, precision=0)
+    return states.get(int(value), "Unknown") if value is not None else None
+
+
+def _has_battery(data):
+    """Return whether Beszel reports a battery."""
+    values = data.get(ATTR_BATTERY)
+    return (
+        isinstance(values, (list, tuple))
+        and len(values) >= 2
+        and list(values[:2]) != [0, 0]
+    )
+
+
+def _used_percent(data, total_key, used_key):
+    """Return a percentage only when both source values are reported."""
+    total = data.get(total_key)
+    used = data.get(used_key)
+    if total is None or used is None:
+        return None
+    try:
+        return round((float(used) / float(total)) * 100, 2) if float(total) else 0
+    except (TypeError, ValueError):
+        return None
+
 
 SENSOR_TYPES_INFO = [
     (
@@ -81,8 +140,8 @@ SENSOR_TYPES_INFO = [
     (
         ATTR_UPTIME,
         "Uptime",
-        None,
-        None,
+        UnitOfTime.SECONDS,
+        SensorDeviceClass.DURATION,
         SensorStateClass.MEASUREMENT,
         "mdi:timer-sand",
         "info",
@@ -92,10 +151,34 @@ SENSOR_TYPES_INFO = [
 
 SENSOR_TYPES_STATS = [
     (
+        "battery_percent",
+        "Battery Level",
+        PERCENTAGE,
+        SensorDeviceClass.BATTERY,
+        SensorStateClass.MEASUREMENT,
+        "mdi:battery",
+        "stats",
+        True,
+        None,
+        _battery_percent,
+    ),
+    (
+        "battery_state",
+        "Battery State",
+        None,
+        SensorDeviceClass.ENUM,
+        None,
+        "mdi:battery-charging",
+        "stats",
+        True,
+        ["Charging", "Discharging", "Empty", "Full", "Idle", "Unknown"],
+        _battery_state,
+    ),
+    (
         ATTR_CPU_PERCENT,
         "CPU Usage",
         PERCENTAGE,
-        SensorDeviceClass.POWER_FACTOR,
+        None,
         SensorStateClass.MEASUREMENT,
         "mdi:cpu-64-bit",
         "stats",
@@ -105,7 +188,7 @@ SENSOR_TYPES_STATS = [
         ATTR_DISK_PERCENT,
         "Disk Usage",
         PERCENTAGE,
-        SensorDeviceClass.POWER_FACTOR,
+        None,
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
         "stats",
@@ -152,6 +235,78 @@ SENSOR_TYPES_STATS = [
         True,
     ),
     (
+        "disk_io_utilisation_percent",
+        "Disk I/O Utilisation",
+        PERCENTAGE,
+        None,
+        SensorStateClass.MEASUREMENT,
+        "mdi:harddisk",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 2),
+    ),
+    (
+        "disk_read_await_ms",
+        "Disk Read Await",
+        UnitOfTime.MILLISECONDS,
+        SensorDeviceClass.DURATION,
+        SensorStateClass.MEASUREMENT,
+        "mdi:timer-outline",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 3),
+    ),
+    (
+        "disk_read_time_percent",
+        "Disk Read Time",
+        PERCENTAGE,
+        None,
+        SensorStateClass.MEASUREMENT,
+        "mdi:harddisk",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 0),
+    ),
+    (
+        "disk_weighted_io_percent",
+        "Disk Weighted I/O",
+        PERCENTAGE,
+        None,
+        SensorStateClass.MEASUREMENT,
+        "mdi:harddisk",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 5),
+    ),
+    (
+        "disk_write_await_ms",
+        "Disk Write Await",
+        UnitOfTime.MILLISECONDS,
+        SensorDeviceClass.DURATION,
+        SensorStateClass.MEASUREMENT,
+        "mdi:timer-outline",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 4),
+    ),
+    (
+        "disk_write_time_percent",
+        "Disk Write Time",
+        PERCENTAGE,
+        None,
+        SensorStateClass.MEASUREMENT,
+        "mdi:harddisk",
+        "stats",
+        True,
+        None,
+        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 1),
+    ),
+    (
         ATTR_MEM_BUFF_CACHE_GB,
         "Memory Buffer/Cache",
         UnitOfInformation.GIGABYTES,
@@ -165,7 +320,7 @@ SENSOR_TYPES_STATS = [
         ATTR_MEM_PERCENT,
         "Memory Usage",
         PERCENTAGE,
-        SensorDeviceClass.POWER_FACTOR,
+        None,
         SensorStateClass.MEASUREMENT,
         "mdi:memory",
         "stats",
@@ -225,21 +380,13 @@ SENSOR_TYPES_STATS = [
         ATTR_SWAP_PERCENT,
         "Swap Usage",
         PERCENTAGE,
-        SensorDeviceClass.POWER_FACTOR,
+        None,
         SensorStateClass.MEASUREMENT,
         "mdi:harddisk",
         "stats",
         True,
         None,
-        lambda data: (
-            round(
-                (data.get(ATTR_SWAP_USED_GB, 0) / data.get(ATTR_SWAP_TOTAL_GB, 1))
-                * 100,
-                2,
-            )
-            if data.get(ATTR_SWAP_TOTAL_GB)
-            else 0
-        ),
+        lambda data: _used_percent(data, ATTR_SWAP_TOTAL_GB, ATTR_SWAP_USED_GB),
     ),
     (
         ATTR_SWAP_TOTAL_GB,
@@ -282,21 +429,12 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             ATTR_FS_DISK_PERCENT,
             f"{fs_name} Usage",
             PERCENTAGE,
-            SensorDeviceClass.POWER_FACTOR,
+            None,
             SensorStateClass.MEASUREMENT,
             "mdi:harddisk",
             True,
-            lambda data: (
-                round(
-                    (
-                        data.get(ATTR_FS_DISK_USED_GB, 0)
-                        / data.get(ATTR_FS_DISK_TOTAL_GB, 1)
-                    )
-                    * 100,
-                    2,
-                )
-                if data.get(ATTR_FS_DISK_TOTAL_GB)
-                else 0
+            lambda data: _used_percent(
+                data, ATTR_FS_DISK_TOTAL_GB, ATTR_FS_DISK_USED_GB
             ),
         ),
         (
@@ -334,6 +472,66 @@ def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
             SensorStateClass.MEASUREMENT,
             "mdi:arrow-up-bold-circle-outline",
             True,
+        ),
+        (
+            "io_utilisation_percent",
+            f"{fs_name} I/O Utilisation",
+            PERCENTAGE,
+            None,
+            SensorStateClass.MEASUREMENT,
+            "mdi:harddisk",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 2),
+        ),
+        (
+            "read_await_ms",
+            f"{fs_name} Read Await",
+            UnitOfTime.MILLISECONDS,
+            SensorDeviceClass.DURATION,
+            SensorStateClass.MEASUREMENT,
+            "mdi:timer-outline",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 3),
+        ),
+        (
+            "read_time_percent",
+            f"{fs_name} Read Time",
+            PERCENTAGE,
+            None,
+            SensorStateClass.MEASUREMENT,
+            "mdi:harddisk",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 0),
+        ),
+        (
+            "weighted_io_percent",
+            f"{fs_name} Weighted I/O",
+            PERCENTAGE,
+            None,
+            SensorStateClass.MEASUREMENT,
+            "mdi:harddisk",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 5),
+        ),
+        (
+            "write_await_ms",
+            f"{fs_name} Write Await",
+            UnitOfTime.MILLISECONDS,
+            SensorDeviceClass.DURATION,
+            SensorStateClass.MEASUREMENT,
+            "mdi:timer-outline",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 4),
+        ),
+        (
+            "write_time_percent",
+            f"{fs_name} Write Time",
+            PERCENTAGE,
+            None,
+            SensorStateClass.MEASUREMENT,
+            "mdi:harddisk",
+            True,
+            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 1),
         ),
     ]
 
@@ -402,10 +600,19 @@ def _create_gpu_sensors(
             True,
         ),
         (
+            ATTR_GPU_POWER_PACKAGE_W,
+            f"{gpu_name_display} Package Power",
+            UnitOfPower.WATT,
+            SensorDeviceClass.POWER,
+            SensorStateClass.MEASUREMENT,
+            "mdi:lightning-bolt-outline",
+            True,
+        ),
+        (
             ATTR_GPU_USAGE_PERCENT,
             f"{gpu_name_display} Usage",
             PERCENTAGE,
-            SensorDeviceClass.POWER_FACTOR,
+            None,
             SensorStateClass.MEASUREMENT,
             "mdi:expansion-card",
             True,
@@ -441,121 +648,95 @@ def _create_gpu_sensors(
     return sensors
 
 
+def _create_available_sensors(coordinator):
+    """Create sensors for all values currently reported by Beszel."""
+    entities = []
+    for system_id, system_data in (coordinator.data or {}).items():
+        system_name = system_data.get("name", system_id)
+
+        for sensor_type in (*SENSOR_TYPES_INFO, *SENSOR_TYPES_STATS):
+            (
+                api_key,
+                name_suffix,
+                unit,
+                dev_class,
+                state_class,
+                icon,
+                data_key,
+                enabled,
+                *rest,
+            ) = sensor_type
+            options = rest[0] if rest else None
+            value_func = rest[1] if len(rest) > 1 else None
+            sensor = BeszelSensor(
+                coordinator,
+                system_id,
+                system_name,
+                api_key,
+                name_suffix,
+                unit,
+                dev_class,
+                state_class,
+                icon,
+                data_key,
+                enabled,
+                options=options,
+                value_func=value_func,
+            )
+            value = sensor.native_value
+            if data_key == "status" or (
+                value is not None
+                and not (isinstance(value, str) and value.lower() == "unknown")
+            ):
+                entities.append(sensor)
+
+        extra_fs_data = system_data.get("stats", {}).get(ATTR_EXTRA_FS, {})
+        for fs_name in extra_fs_data:
+            entities.extend(
+                _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name)
+            )
+
+        gpu_data_map = system_data.get("stats", {}).get(ATTR_GPU_DATA, {})
+        for gpu_id, gpu_stats in gpu_data_map.items():
+            gpu_name = gpu_stats.get(ATTR_GPU_NAME, gpu_id)
+            entities.extend(
+                _create_gpu_sensors(
+                    coordinator, system_id, system_name, gpu_id, gpu_name
+                )
+            )
+
+        temperatures = system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
+        for temperature_name in temperatures:
+            sensor = BeszelTemperatureSensor(
+                coordinator, system_id, system_name, temperature_name
+            )
+            if sensor.native_value is not None:
+                entities.append(sensor)
+
+    return entities
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Beszel sensor entities based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    await coordinator.async_config_entry_first_refresh()
+    known_unique_ids = set()
 
-    entities_to_add = []
-
-    if coordinator.data:
-        for system_id, system_data in coordinator.data.items():
-            if "error" in system_data:
+    @callback
+    def async_discover_entities():
+        new_entities = []
+        for entity in _create_available_sensors(coordinator):
+            if entity.unique_id in known_unique_ids:
                 continue
+            known_unique_ids.add(entity.unique_id)
+            new_entities.append(entity)
+        if new_entities:
+            async_add_entities(new_entities)
 
-            system_name = system_data.get("name", system_id)
-
-            # Add static info sensors
-            for (
-                api_key,
-                name_suffix,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                data_key,
-                enabled,
-                *rest,
-            ) in SENSOR_TYPES_INFO:
-                options = rest[0] if rest else None
-                sensor = BeszelSensor(
-                    coordinator,
-                    system_id,
-                    system_name,
-                    api_key,
-                    name_suffix,
-                    unit,
-                    dev_class,
-                    state_class,
-                    icon,
-                    data_key,
-                    enabled,
-                    options=options,
-                )
-                value = sensor.native_value
-                if value is not None and not (
-                    isinstance(value, str) and value.lower() == "unknown"
-                ):
-                    entities_to_add.append(sensor)
-
-            # Add dynamic stats sensors
-            for (
-                api_key,
-                name_suffix,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                data_key,
-                enabled,
-                *rest,
-            ) in SENSOR_TYPES_STATS:
-                options = rest[0] if rest and len(rest) > 0 else None
-                value_func = rest[1] if rest and len(rest) > 1 else None
-                sensor = BeszelSensor(
-                    coordinator,
-                    system_id,
-                    system_name,
-                    api_key,
-                    name_suffix,
-                    unit,
-                    dev_class,
-                    state_class,
-                    icon,
-                    data_key,
-                    enabled,
-                    options=options,
-                    value_func=value_func,
-                )
-                value = sensor.native_value
-                if value is not None and not (
-                    isinstance(value, str) and value.lower() == "unknown"
-                ):
-                    entities_to_add.append(sensor)
-
-            # Add Extra Filesystem sensors
-            extra_fs_data = system_data.get("stats", {}).get(ATTR_EXTRA_FS, {})
-            for fs_name, fs_stats in extra_fs_data.items():
-                entities_to_add.extend(
-                    _create_extra_fs_sensors(
-                        coordinator, system_id, system_name, fs_name
-                    )
-                )
-
-            # Add GPU sensors
-            gpu_data_map = system_data.get("stats", {}).get(ATTR_GPU_DATA, {})
-            for gpu_id, gpu_stats in gpu_data_map.items():
-                gpu_name_from_stats = gpu_stats.get(ATTR_GPU_NAME, gpu_id)
-                entities_to_add.extend(
-                    _create_gpu_sensors(
-                        coordinator, system_id, system_name, gpu_id, gpu_name_from_stats
-                    )
-                )
-
-            # Add temperature sensors
-            temps = system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
-            for temp_sensor_name in temps:
-                sensor = BeszelTemperatureSensor(
-                    coordinator, system_id, system_name, temp_sensor_name
-                )
-                if sensor.native_value is not None:
-                    entities_to_add.append(sensor)
-
-    if entities_to_add:
-        async_add_entities(entities_to_add)
+    async_discover_entities()
+    entry.async_on_unload(coordinator.async_add_listener(async_discover_entities))
 
 
-class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
+class BeszelNestedSensor(CoordinatorEntity, SensorEntity):
     """Sensor for values nested within a sub-dictionary (e.g., extra_fs, gpu_data)."""
 
     def __init__(
@@ -575,7 +756,7 @@ class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
         value_func=None,
     ):
         """Initialize the nested sensor."""
-        CoordinatorEntity.__init__(self, coordinator)
+        super().__init__(coordinator)
         self._system_id = system_id
         self._system_name = system_name
         self._attr_device_class = device_class
@@ -587,10 +768,12 @@ class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
         self._attr_has_entity_name = True
 
         unique_part = f"{parent_key}_{item_key}_{api_value_key}"
-        self._attr_unique_id = f"{DOMAIN}_{system_id}_stats_{unique_part}"
+        self._attr_unique_id = (
+            f"{DOMAIN}_{coordinator.config_entry_id}_{system_id}_stats_{unique_part}"
+        )
 
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, system_id)},
+            "identifiers": {(DOMAIN, f"{coordinator.config_entry_id}_{system_id}")},
             "manufacturer": "Beszel",
             "model": "Monitored System",
             "name": system_name,
@@ -604,7 +787,16 @@ class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
     @property
     def system_data(self):
         """Shortcut to get the data for this sensor's system."""
-        return self.coordinator.data.get(self._system_id, {})
+        return (self.coordinator.data or {}).get(self._system_id, {})
+
+    @property
+    def available(self):
+        """Return whether this system has current data."""
+        return (
+            super().available
+            and bool(self.system_data)
+            and "error" not in self.system_data
+        )
 
     @property
     def native_value(self):
@@ -617,18 +809,11 @@ class BeszelNestedSensor(SensorEntity, CoordinatorEntity):
 
         value = item_dict.get(self._api_value_key)
 
-        if (
-            value is None
-            and self._attr_native_unit_of_measurement
-            == UnitOfDataRate.MEGABYTES_PER_SECOND
-        ):
-            value = 0.0
-
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
             try:
                 return round(float(value), 2)
-            except (ValueError, TypeError):
-                return value
+            except (TypeError, ValueError):
+                return None
         return value
 
 
@@ -661,13 +846,13 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
         self._system_name = system_name
         self._attr_device_class = device_class
         self._attr_entity_registry_enabled_default = enabled_by_default
-        self._attr_name = f"{name_suffix}"
+        self._attr_name = name_suffix
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
         self._attr_unique_id = (
-            f"{DOMAIN}_{self._system_id}_{self._data_source_key}_{self._api_key}"
+            f"{DOMAIN}_{coordinator.config_entry_id}_{self._system_id}_"
+            f"{self._data_source_key}_{self._api_key}"
         )
-        self._calculated_unit_of_measurement = None
         self._icon_definition = icon
         self._value_func = value_func
 
@@ -675,13 +860,15 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
             self._attr_options = options
 
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._system_id)},
+            "identifiers": {
+                (DOMAIN, f"{coordinator.config_entry_id}_{self._system_id}")
+            },
             "manufacturer": "Beszel",
             "model": "Monitored System",
             "name": self._system_name,
         }
 
-        initial_system_data = coordinator.data.get(self._system_id, {})
+        initial_system_data = (coordinator.data or {}).get(self._system_id, {})
         if initial_system_data and not initial_system_data.get("error"):
             agent_version = initial_system_data.get("info", {}).get(
                 ATTR_AGENT_VERSION, "Unknown"
@@ -692,26 +879,10 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
             if os_name != "Unknown":
                 self._attr_device_info["model"] = os_name
 
-    def _calculate_uptime_value_and_unit(self, total_seconds):
-        """Calculate uptime value and unit based on total seconds."""
-        if total_seconds < SECONDS_PER_MINUTE:
-            val, unit = total_seconds, UnitOfTime.SECONDS
-        elif total_seconds < SECONDS_PER_HOUR:
-            val, unit = round(total_seconds / SECONDS_PER_MINUTE, 1), UnitOfTime.MINUTES
-        elif total_seconds < SECONDS_PER_DAY:
-            val, unit = round(total_seconds / SECONDS_PER_HOUR, 2), UnitOfTime.HOURS
-        else:
-            val, unit = round(total_seconds / SECONDS_PER_DAY, 2), UnitOfTime.DAYS
-
-        self._calculated_unit_of_measurement = unit
-        if unit == UnitOfTime.SECONDS:
-            return int(val) if val.is_integer() else val, unit
-        return val, unit
-
     @callback
     def _handle_coordinator_update(self):
         """Handle updated data from the coordinator."""
-        current_data = self.coordinator.data.get(self._system_id, {})
+        current_data = (self.coordinator.data or {}).get(self._system_id, {})
         if current_data and not current_data.get("error"):
             new_agent_version = current_data.get("info", {}).get(ATTR_AGENT_VERSION)
             new_os_raw = current_data.get("info", {}).get(ATTR_OS)
@@ -761,10 +932,8 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
         if not super().available:
             return False
 
-        system_specific_data = self.coordinator.data.get(self._system_id)
-        if not system_specific_data or "error" in system_specific_data:
-            return False
-        return True
+        system_specific_data = (self.coordinator.data or {}).get(self._system_id)
+        return bool(system_specific_data) and "error" not in system_specific_data
 
     @property
     def icon(self):
@@ -777,39 +946,26 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
         return self._icon_definition
 
     @property
-    def native_unit_of_measurement(self):
-        """Return the dynamic unit of measurement for uptime, or default."""
-        if self._api_key == ATTR_UPTIME and self._data_source_key == "info":
-            return self._calculated_unit_of_measurement
-        return super().native_unit_of_measurement
-
-    @property
     def native_value(self):
         """Return the state of the sensor."""
-        # Handle Status sensor capitalization
         if self._data_source_key == "status":
             current_status = self.system_data.get("status", "unknown")
-            return current_status.title()
+            return str(current_status).title()
 
-        # Handle Uptime sensor with dynamic units
         if self._api_key == ATTR_UPTIME and self._data_source_key == "info":
-            self._calculated_unit_of_measurement = self._attr_native_unit_of_measurement
-
             raw_seconds_val = self.system_data.get("info", {}).get(ATTR_UPTIME)
             if raw_seconds_val is None:
                 return None
             try:
                 total_seconds = float(raw_seconds_val)
-            except (ValueError, TypeError):
-                return raw_seconds_val
+            except (TypeError, ValueError):
+                return None
 
             if total_seconds < 0:
                 return None
 
-            val, _ = self._calculate_uptime_value_and_unit(total_seconds)
-            return val
+            return int(total_seconds) if total_seconds.is_integer() else total_seconds
 
-        # Default handling for other sensors
         data_dict = self.system_data.get(self._data_source_key, {})
 
         if not isinstance(data_dict, dict):
@@ -820,27 +976,20 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
 
         value = data_dict.get(self._api_key)
 
-        if (
-            value is None
-            and self._attr_native_unit_of_measurement
-            == UnitOfDataRate.MEGABYTES_PER_SECOND
-        ):
-            value = 0.0
-
         if self._api_key == ATTR_OS and self._data_source_key == "info":
             return self._map_os_type_to_name(value)
 
         if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
             try:
                 return round(float(value), 2)
-            except (ValueError, TypeError):
-                return value
+            except (TypeError, ValueError):
+                return None
         return value
 
     @property
     def system_data(self):
         """Shortcut to get the data for this sensor's system."""
-        return self.coordinator.data.get(self._system_id, {})
+        return (self.coordinator.data or {}).get(self._system_id, {})
 
 
 class BeszelTemperatureSensor(BeszelSensor):
@@ -889,6 +1038,6 @@ class BeszelTemperatureSensor(BeszelSensor):
         if value is not None:
             try:
                 return round(float(value), 1)
-            except (ValueError, TypeError):
+            except (TypeError, ValueError):
                 return None
         return None

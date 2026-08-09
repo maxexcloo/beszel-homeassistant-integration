@@ -1,22 +1,32 @@
 [tools]
-python = "3.14.3"
+python = "3.14.7"
+ruff = "0.16.2"
+uv = "0.12.3"
 
 [tasks.build]
 description = "No build required for Home Assistant integration"
 run = "echo 'No build required - Home Assistant integration'"
 
 [tasks.check]
-description = "Run all checks (fmt)"
-depends = ["fmt"]
+depends = ["lint", "test"]
+description = "Run all validation"
 
 [tasks.dev]
-description = "Development validation cycle"
-run = "black custom_components/"
+depends = ["check"]
+description = "Run the development validation cycle"
 
 [tasks.fmt]
-description = "Format Python code"
-run = "black custom_components/"
+description = "Format and fix Python code"
+run = ["ruff check --fix .", "ruff format ."]
+
+[tasks.lint]
+description = "Check Python code"
+run = ["ruff check .", "ruff format --check ."]
+
+[tasks.setup]
+description = "Install test dependencies"
+run = "uv sync --group test"
 
 [tasks.test]
-description = "No testing framework configured"
-run = "echo 'No testing framework configured'"
+description = "Run tests"
+run = "uv run --group test pytest"

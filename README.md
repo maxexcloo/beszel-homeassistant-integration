@@ -1,85 +1,84 @@
 # Beszel Home Assistant Integration
 
+[![Check](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/validate.yml)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](custom_components/beszel/manifest.json)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-active-success)](https://img.shields.io/badge/status-active-success)
-[![HACS](https://img.shields.io/badge/HACS-orange.svg)](https://github.com/hacs/integration)
 
-Monitor system statistics from Beszel servers in Home Assistant. This integration provides comprehensive system monitoring with dynamic sensor creation and multi-system support.
+Monitor Beszel systems in Home Assistant with automatically discovered diagnostic
+sensors for hardware, operating system, storage, and network statistics.
 
 ## Quick Start
 
-1. Install via HACS or manually copy to `custom_components/beszel/`
-2. Restart Home Assistant
-3. Go to **Settings** → **Devices & Services** → **Add Integration**
-4. Search for "Beszel" and configure with your server details
+1. Add `https://github.com/maxexcloo/homeassistant-beszel-integration` as an
+   Integration custom repository in HACS.
+2. Install **Beszel** and restart Home Assistant.
+3. Open **Settings → Devices & services → Add integration**.
+4. Search for **Beszel** and enter the Hub URL, username, and password.
 
 ## Features
 
-- **Agent Information**: Version tracking and system identification
-- **CPU Monitoring**: Cores, model, threads, and usage percentage
-- **Disk Statistics**: Read/write speeds, total space, usage, and utilization percentage
-- **GPU Support**: Multi-GPU statistics including memory and power consumption
-- **Kernel Information**: Version and system details
-- **Memory Tracking**: Buffer/cache, percentage, total, usage, and ZFS ARC
-- **Network Statistics**: Received/sent speeds and throughput
-- **OS Information**: Version and distribution details
-- **Per-Filesystem Monitoring**: Individual filesystem statistics
-- **Swap Memory**: Percentage, total, and usage tracking
-- **System Health**: Status monitoring and uptime tracking
-- **Temperature Sensors**: Hardware temperature monitoring
+- Battery level and charging state.
+- CPU model, topology, and utilisation.
+- Disk capacity, throughput, latency, and I/O utilisation.
+- Dynamic discovery when systems or metrics appear after setup.
+- GPU memory, package power, power draw, and utilisation.
+- Memory, swap, network, operating system, status, and uptime sensors.
+- Multiple Beszel Hubs and systems without device or entity collisions.
+- Per-filesystem and temperature sensors.
+- Reauthentication and reconfiguration through Home Assistant.
 
 ## Installation
 
-### HACS (Recommended)
+### HACS
+
+1. Open **HACS → Integrations → Custom repositories**.
+2. Add `https://github.com/maxexcloo/homeassistant-beszel-integration`.
+3. Select the **Integration** category.
+4. Install **Beszel** and restart Home Assistant.
+
+### Manual
+
+From a checkout of this repository, copy the integration into your Home Assistant
+configuration directory:
 
 ```bash
-# Add custom repository in HACS
-1. Go to HACS → Integrations → Custom repositories
-2. Add: https://github.com/maxexcloo/beszel-homeassistant-integration
-3. Category: Integration
-4. Install "Beszel" and restart Home Assistant
+mkdir -p /config/custom_components/beszel
+cp -R custom_components/beszel/. /config/custom_components/beszel/
 ```
 
-### Manual Installation
-
-```bash
-# Copy integration files
-mkdir -p config/custom_components/beszel
-cp -r custom_components/beszel/* config/custom_components/beszel/
-# Restart Home Assistant
-```
+Restart Home Assistant after copying the files.
 
 ## Usage
 
 ### Configuration
 
-1. Navigate to **Settings** → **Devices & Services**
-2. Click **+ ADD INTEGRATION**
-3. Search for "Beszel"
-4. Enter your Beszel server details:
-   - **Host**: API endpoint (e.g., `http://192.168.1.100:45876`)
-   - **Username**: Your Beszel API username
-   - **Password**: Your Beszel API password
+Enter the following values when adding the integration:
 
-### Example Configuration
+- **Host**: The Beszel Hub URL, such as `http://192.168.1.100:8090`.
+- **Username**: The Hub username or email address.
+- **Password**: The Hub password.
 
-```yaml
-# Example sensors created automatically
-sensor.beszel_server_cpu_usage
-sensor.beszel_server_memory_percent
-sensor.beszel_server_disk_usage
-sensor.beszel_server_gpu_0_usage
-sensor.beszel_server_filesystem_root_percent
-```
+Home Assistant creates sensors only when Beszel reports the corresponding data.
+New systems and metrics are discovered during later updates without reloading the
+integration.
+
+To expose additional disks, configure the Beszel agent using the
+[additional disks guide](https://beszel.dev/guide/additional-disks). Each reported
+filesystem receives its own capacity, throughput, and I/O sensors.
+
+Use **Settings → Devices & services → Beszel → Configure** to change the Hub or
+credentials. Home Assistant also prompts for a new password when authentication
+expires.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make changes following the code standards in CLAUDE.md
-4. Format code: `black custom_components/`
-5. Submit a pull request
+1. Fork the repository and create a feature branch.
+2. Install the pinned development environment with `mise install`.
+3. Install test dependencies with `mise run setup`.
+4. Follow the repository standards in `AGENTS.md`.
+5. Run `mise run fmt` and `mise run check`.
+6. Submit a pull request with tests and documentation for behavioural changes.
 
 ## License
 
-This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
