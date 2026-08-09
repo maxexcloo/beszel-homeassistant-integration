@@ -73,10 +73,10 @@ expires.
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Install test dependencies with
-   `python3 -m pip install --requirement requirements_test.txt`.
+2. Install uv.
 3. Follow the repository standards in `AGENTS.md`.
-4. Run Ruff and `python3 -m pytest`.
+4. Run Ruff and
+   `uv run --isolated --python 3.14 --with-requirements requirements_test.txt pytest`.
 5. Submit a pull request with tests and documentation for behavioural changes.
 
 ## License
