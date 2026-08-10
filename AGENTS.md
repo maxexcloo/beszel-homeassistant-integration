@@ -37,6 +37,5 @@
 
 ## Verification
 
-- Run `uv run --isolated --python 3.14 --with-requirements requirements_test.txt pytest`
-  for Python changes.
+- Run `python3 -m unittest discover -s tests` for Python changes.
 - Run Ruff checking and formatting validation before committing.

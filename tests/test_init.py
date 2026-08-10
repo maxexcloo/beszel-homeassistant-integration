@@ -1,9 +1,9 @@
 """Tests for Beszel integration setup and migration."""
 
+import unittest
 from uuid import uuid4
 
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
+from support import FakeHomeAssistant
 
 from custom_components.beszel import async_migrate_entry
 from custom_components.beszel.const import DOMAIN
@@ -20,41 +20,54 @@ class MockConfigEntry:
         self.version = version
 
 
-async def test_migrate_legacy_config_and_identifiers(hass):
-    """Version one entries retain entities while gaining scoped identifiers."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            "Host": "beszel.local/",
-            "Password": "password",
-            "Username": "user",
-        },
-        unique_id="beszel.local/_user",
-        version=1,
-    )
-    entity_registry = er.async_get(hass)
-    entity = entity_registry.async_get_or_create(
-        "sensor",
-        DOMAIN,
-        "beszel_system_stats_cpu",
-        config_entry=entry,
-    )
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, "system")},
-    )
+class BeszelMigrationTests(unittest.IsolatedAsyncioTestCase):
+    """Exercise Beszel config-entry migrations."""
 
-    assert await async_migrate_entry(hass, entry)
+    async def test_migrate_legacy_config_and_identifiers(self):
+        """Version one entries retain entities with scoped identifiers."""
+        hass = FakeHomeAssistant()
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "Host": "beszel.local/",
+                "Password": "password",
+                "Username": "user",
+            },
+            unique_id="beszel.local/_user",
+            version=1,
+        )
+        entity_registry = hass.entity_registry
+        entity = entity_registry.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            "beszel_system_stats_cpu",
+            config_entry=entry,
+        )
+        device_registry = hass.device_registry
+        device = device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, "system")},
+        )
 
-    migrated_entity = entity_registry.async_get(entity.entity_id)
-    migrated_device = device_registry.async_get(device.id)
-    assert entry.data == {
-        "host": "http://beszel.local",
-        "password": "password",
-        "username": "user",
-    }
-    assert entry.unique_id == "http://beszel.local_user"
-    assert entry.version == 2
-    assert migrated_entity.unique_id == (f"beszel_{entry.entry_id}_system_stats_cpu")
-    assert migrated_device.identifiers == {(DOMAIN, f"{entry.entry_id}_system")}
+        self.assertTrue(await async_migrate_entry(hass, entry))
+
+        migrated_entity = entity_registry.async_get(entity.entity_id)
+        migrated_device = device_registry.async_get(device.id)
+        self.assertEqual(
+            entry.data,
+            {
+                "host": "http://beszel.local",
+                "password": "password",
+                "username": "user",
+            },
+        )
+        self.assertEqual(entry.unique_id, "http://beszel.local_user")
+        self.assertEqual(entry.version, 2)
+        self.assertEqual(
+            migrated_entity.unique_id,
+            f"beszel_{entry.entry_id}_system_stats_cpu",
+        )
+        self.assertEqual(
+            migrated_device.identifiers,
+            {(DOMAIN, f"{entry.entry_id}_system")},
+        )

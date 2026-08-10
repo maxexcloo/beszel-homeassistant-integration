@@ -1,11 +1,9 @@
-"""Minimal Home Assistant test doubles used by the unit tests."""
+"""Minimal dependency test doubles used by the unit tests."""
 
 import sys
 from enum import Enum
 from types import ModuleType, SimpleNamespace
 from uuid import uuid4
-
-import pytest
 
 
 class _Entity:
@@ -135,6 +133,14 @@ class _UnitOfTime(Enum):
     SECONDS = "s"
 
 
+CONF_HOST = "host"
+CONF_PASSWORD = "password"
+CONF_USERNAME = "username"
+FlowResultType = _FlowResultType
+SensorDeviceClass = _SensorDeviceClass
+UnitOfTime = _UnitOfTime
+
+
 class _EntityRegistry:
     """In-memory entity registry."""
 
@@ -224,9 +230,9 @@ def _install_homeassistant_test_doubles():
     config_entries = _module("homeassistant.config_entries", ConfigFlow=_ConfigFlow)
     const = _module(
         "homeassistant.const",
-        CONF_HOST="host",
-        CONF_PASSWORD="password",
-        CONF_USERNAME="username",
+        CONF_HOST=CONF_HOST,
+        CONF_PASSWORD=CONF_PASSWORD,
+        CONF_USERNAME=CONF_USERNAME,
         PERCENTAGE="%",
         Platform=_Platform,
         UnitOfDataRate=_UnitOfDataRate,
@@ -287,10 +293,50 @@ def _install_homeassistant_test_doubles():
     helpers.update_coordinator = update_coordinator
 
 
+def _install_pocketbase_test_doubles():
+    """Install the PocketBase interfaces imported by the API client."""
+
+    class PocketBase:
+        """Minimal PocketBase client."""
+
+        def __init__(self, host):
+            self.host = host
+
+    class ClientResponseError(Exception):
+        """Minimal PocketBase client response error."""
+
+        def __init__(self, *, status):
+            super().__init__(f"HTTP {status}")
+            self.status = status
+
+    pocketbase = _module("pocketbase", PocketBase=PocketBase)
+    utils = _module(
+        "pocketbase.utils",
+        ClientResponseError=ClientResponseError,
+        validate_token=lambda token: bool(token),
+    )
+    pocketbase.utils = utils
+
+
+def _install_voluptuous_test_double():
+    """Install the Voluptuous interfaces imported by the config flow."""
+
+    class Required:
+        """Minimal required schema marker."""
+
+        def __init__(self, key, *, default=None):
+            self.default = default
+            self.key = key
+
+    class Schema:
+        """Minimal schema container."""
+
+        def __init__(self, schema):
+            self.schema = schema
+
+    _module("voluptuous", Required=Required, Schema=Schema)
+
+
 _install_homeassistant_test_doubles()
-
-
-@pytest.fixture
-def hass():
-    """Return a minimal Home Assistant test double."""
-    return FakeHomeAssistant()
+_install_pocketbase_test_doubles()
+_install_voluptuous_test_double()
