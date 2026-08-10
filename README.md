@@ -73,10 +73,16 @@ expires.
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Install uv.
+2. Install Python 3.14 and Ruff.
 3. Follow the repository standards in `AGENTS.md`.
-4. Run Ruff and
-   `uv run --isolated --python 3.14 --with-requirements requirements_test.txt pytest`.
+4. Run the same checks as CI:
+
+   ```bash
+   ruff check .
+   ruff format --check .
+   python3.14 -m unittest discover -s tests
+   ```
+
 5. Submit a pull request with tests and documentation for behavioural changes.
 
 ## Licence
