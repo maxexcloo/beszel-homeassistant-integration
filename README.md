@@ -1,8 +1,8 @@
 # Beszel Home Assistant Integration
 
-[![Check](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/validate.yml/badge.svg)](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/validate.yml)
+[![Check](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yml/badge.svg)](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yml)
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](custom_components/beszel/manifest.json)
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
 
 Monitor Beszel systems in Home Assistant with automatically discovered diagnostic
 sensors for hardware, operating system, storage, and network statistics.
@@ -79,6 +79,6 @@ expires.
    `uv run --isolated --python 3.14 --with-requirements requirements_test.txt pytest`.
 5. Submit a pull request with tests and documentation for behavioural changes.
 
-## License
+## Licence
 
 Licensed under the [GNU Affero General Public License v3.0](LICENSE).
