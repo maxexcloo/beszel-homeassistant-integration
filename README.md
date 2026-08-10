@@ -1,6 +1,6 @@
 # Beszel Home Assistant Integration
 
-[![Check](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yml/badge.svg)](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yml)
+[![Check](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yaml/badge.svg)](https://github.com/maxexcloo/homeassistant-beszel-integration/actions/workflows/check.yaml)
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](custom_components/beszel/manifest.json)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
 

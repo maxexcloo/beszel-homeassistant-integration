@@ -14,7 +14,7 @@ class BeszelApiClient:
     """Beszel API Client."""
 
     def __init__(self, host, username, password):
-        """Initialize the API client."""
+        """Initialise the API client."""
         if not host.startswith(("http://", "https://")):
             host = f"http://{host}"
         host = host.rstrip("/")

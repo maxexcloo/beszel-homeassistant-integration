@@ -26,6 +26,7 @@
 - Sort unordered peer headings, lists, and table rows alphabetically. Preserve
   narrative, procedural, dependency, interface, priority, and chronological order.
 - Update `README.md` and architecture documentation with feature changes.
+- Use `.yaml` for GitHub Actions workflows.
 - Use Australian English throughout authored prose and every project-owned name,
   including identifiers, configuration keys, environment variables, paths, CLI
   commands, and options. Update every producer and consumer together; preserve only

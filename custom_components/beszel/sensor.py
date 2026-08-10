@@ -755,7 +755,7 @@ class BeszelNestedSensor(CoordinatorEntity, SensorEntity):
         enabled_by_default=True,
         value_func=None,
     ):
-        """Initialize the nested sensor."""
+        """Initialise the nested sensor."""
         super().__init__(coordinator)
         self._system_id = system_id
         self._system_name = system_name
@@ -838,7 +838,7 @@ class BeszelSensor(CoordinatorEntity, SensorEntity):
         options=None,
         value_func=None,
     ):
-        """Initialize the sensor."""
+        """Initialise the sensor."""
         super().__init__(coordinator)
         self._api_key = api_key
         self._data_source_key = data_source_key
@@ -996,7 +996,7 @@ class BeszelTemperatureSensor(BeszelSensor):
     """Representation of a Beszel Temperature Sensor."""
 
     def __init__(self, coordinator, system_id, system_name, temp_sensor_key):
-        """Initialize the temperature sensor."""
+        """Initialise the temperature sensor."""
         self._temp_sensor_key = temp_sensor_key
         key_lower_for_name = temp_sensor_key.lower()
 

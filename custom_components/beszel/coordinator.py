@@ -17,7 +17,7 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
     """Manages fetching data from the Beszel API."""
 
     def __init__(self, hass, api_client, config_entry_id, update_interval_seconds):
-        """Initialize the data update coordinator."""
+        """Initialise the data update coordinator."""
         super().__init__(
             hass,
             _LOGGER,

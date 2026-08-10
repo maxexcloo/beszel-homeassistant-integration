@@ -7,7 +7,8 @@ on:
     - cron: "0 0 * * 0"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   cancel-in-progress: true
@@ -18,8 +19,10 @@ jobs:
     name: Unit tests and Ruff
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -53,7 +56,9 @@ jobs:
     name: Hassfest
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Validate with hassfest
         uses: home-assistant/actions/hassfest@master
