@@ -1,11 +1,23 @@
 """Tests for Beszel integration setup and migration."""
 
+from uuid import uuid4
+
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.beszel import async_migrate_entry
 from custom_components.beszel.const import DOMAIN
+
+
+class MockConfigEntry:
+    """Minimal config entry used by migration tests."""
+
+    def __init__(self, *, data, domain, unique_id, version):
+        self.data = data
+        self.domain = domain
+        self.entry_id = uuid4().hex
+        self.unique_id = unique_id
+        self.version = version
 
 
 async def test_migrate_legacy_config_and_identifiers(hass):
@@ -20,8 +32,6 @@ async def test_migrate_legacy_config_and_identifiers(hass):
         unique_id="beszel.local/_user",
         version=1,
     )
-    entry.add_to_hass(hass)
-
     entity_registry = er.async_get(hass)
     entity = entity_registry.async_get_or_create(
         "sensor",
