@@ -31,21 +31,28 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from API endpoint."""
         try:
-            await self.api_client.async_authenticate()
+            systems = await self.api_client.async_get_systems()
+            if not isinstance(systems, list):
+                raise TypeError("Beszel Hub returned an invalid systems response")
 
-            self.systems_list = await self.api_client.async_get_systems()
-            if not self.systems_list:
-                _LOGGER.info("No systems found.")
+            self.systems_list = systems
+            if not systems:
+                _LOGGER.info("No systems found on Beszel Hub %s", self.api_client.host)
                 return {}
 
             all_system_data = {}
-            systems_with_ids = [
-                system for system in self.systems_list if system.get("id")
-            ]
-            tasks = [
-                self._fetch_individual_system_data(
-                    system["id"], system.get("name", system["id"])
+            systems_with_ids = []
+            for system in systems:
+                if isinstance(system, dict) and system.get("id"):
+                    systems_with_ids.append(system)
+                    continue
+                _LOGGER.warning(
+                    "Ignoring system without an ID from Beszel Hub %s: %r",
+                    self.api_client.host,
+                    system,
                 )
+            tasks = [
+                self._fetch_individual_system_data(system)
                 for system in systems_with_ids
             ]
 
@@ -53,54 +60,56 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
 
             for system, result in zip(systems_with_ids, results, strict=True):
                 system_id = system["id"]
+                if isinstance(result, asyncio.CancelledError):
+                    raise result
+                if isinstance(result, BeszelApiAuthError):
+                    raise result
                 if isinstance(result, Exception):
                     _LOGGER.error(
-                        "Error fetching data for system %s (%s): %s",
+                        "Error fetching data from Beszel Hub %s for system %s (%s): %s",
+                        self.api_client.host,
                         system.get("name", system_id),
                         system_id,
                         result,
                     )
                     cached_data = (self.data or {}).get(system_id, {})
+                    if not isinstance(cached_data, dict):
+                        cached_data = {}
+                    info = system.get("info")
+                    if info is None:
+                        info = cached_data.get("info")
                     all_system_data[system_id] = {
                         **cached_data,
                         "error": str(result),
                         "id": system_id,
-                        "info": cached_data.get("info", system.get("info", {})),
+                        "info": info,
                         "name": system.get("name", system_id),
-                        "stats": cached_data.get("stats", {}),
+                        "stats": cached_data.get("stats"),
                         "status": system.get("status", "unknown"),
                     }
-                elif result:
-                    all_system_data[system_id] = result
                 else:
-                    all_system_data[system_id] = {
-                        "error": "Unknown error fetching data for system"
-                    }
+                    all_system_data[system_id] = result
 
             return all_system_data
 
         except BeszelApiAuthError as err:
-            raise ConfigEntryAuthFailed(f"Authentication error: {err}") from err
+            raise ConfigEntryAuthFailed(
+                f"Authentication failed for Beszel Hub {self.api_client.host}: {err}"
+            ) from err
         except Exception as err:
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
+            raise UpdateFailed(
+                f"Error communicating with Beszel Hub {self.api_client.host}: {err}"
+            ) from err
 
-    async def _fetch_individual_system_data(self, system_id, system_name):
+    async def _fetch_individual_system_data(self, system):
         """Fetch stats and 'info' for a single system."""
+        system_id = system["id"]
         stats = await self.api_client.async_get_latest_system_stats(system_id)
-
-        system_record = next(
-            (s for s in self.systems_list if s.get("id") == system_id), None
-        )
-        device_info_summary = {}
-        if system_record:
-            device_info_summary = system_record.get("info", {})
 
         return {
             "id": system_id,
-            "info": device_info_summary,
-            "name": system_name,
-            "stats": stats or {},
-            "status": (
-                system_record.get("status", "unknown") if system_record else "unknown"
-            ),
+            "info": system.get("info"),
+            "name": system.get("name", system_id),
+            "stats": stats,
+            "status": system.get("status", "unknown"),
         }

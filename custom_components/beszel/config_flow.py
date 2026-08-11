@@ -61,7 +61,10 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
             except BeszelApiAuthError:
                 errors["base"] = "invalid_auth"
             except Exception:
-                _LOGGER.exception("Unexpected exception during reauthentication")
+                _LOGGER.exception(
+                    "Unexpected exception during reauthentication for Beszel Hub %s",
+                    updated_data[CONF_HOST],
+                )
                 errors["base"] = "cannot_connect"
             else:
                 return self.async_update_reload_and_abort(entry, data=updated_data)
@@ -83,7 +86,10 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
             except BeszelApiAuthError:
                 errors["base"] = "invalid_auth"
             except Exception:
-                _LOGGER.exception("Unexpected exception during reconfiguration")
+                _LOGGER.exception(
+                    "Unexpected exception during reconfiguration for Beszel Hub %s",
+                    user_input[CONF_HOST],
+                )
                 errors["base"] = "cannot_connect"
             else:
                 unique_id = f"{api_client.host}_{user_input[CONF_USERNAME]}"
@@ -117,7 +123,10 @@ class BeszelConfigFlow(ConfigFlow, domain=DOMAIN):
             except BeszelApiAuthError:
                 errors["base"] = "invalid_auth"
             except Exception:
-                _LOGGER.exception("Unexpected exception during setup")
+                _LOGGER.exception(
+                    "Unexpected exception during setup for Beszel Hub %s",
+                    user_input[CONF_HOST],
+                )
                 errors["base"] = "cannot_connect"
             else:
                 unique_id = f"{api_client.host}_{user_input[CONF_USERNAME]}"

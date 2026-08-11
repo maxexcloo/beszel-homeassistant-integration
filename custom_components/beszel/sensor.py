@@ -1,5 +1,9 @@
 """Sensor platform for Beszel."""
 
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -14,6 +18,7 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -60,6 +65,28 @@ from .const import (
     DOMAIN,
 )
 
+ValueFunction = Callable[[dict[str, Any]], Any]
+
+
+@dataclass(frozen=True, kw_only=True)
+class BeszelSensorDescription:
+    """Describe a Beszel sensor."""
+
+    api_key: str
+    translation_key: str
+    data_source: str = "stats"
+    device_class: SensorDeviceClass | None = None
+    icon: str | None = None
+    native_unit: str | None = None
+    options: tuple[str, ...] | None = None
+    state_class: SensorStateClass | None = None
+    value_fn: ValueFunction | None = None
+
+
+def _mapping(value):
+    """Return a mapping or an empty mapping for unavailable data."""
+    return value if isinstance(value, dict) else {}
+
 
 def _array_value(data, key, index, precision=2):
     """Return a rounded value from a Beszel array metric."""
@@ -71,7 +98,7 @@ def _array_value(data, key, index, precision=2):
         return None
     try:
         return round(float(value), precision)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -88,15 +115,15 @@ def _battery_state(data):
     if not _has_battery(data):
         return None
     states = {
-        0: "Unknown",
-        1: "Empty",
-        2: "Full",
-        3: "Charging",
-        4: "Discharging",
-        5: "Idle",
+        0: "unknown",
+        1: "empty",
+        2: "full",
+        3: "charging",
+        4: "discharging",
+        5: "idle",
     }
     value = _array_value(data, ATTR_BATTERY, 1, precision=0)
-    return states.get(int(value), "Unknown") if value is not None else None
+    return states.get(int(value), "unknown") if value is not None else None
 
 
 def _has_battery(data):
@@ -116,602 +143,601 @@ def _used_percent(data, total_key, used_key):
     if total is None or used is None:
         return None
     try:
-        return round((float(used) / float(total)) * 100, 2) if float(total) else 0
-    except (TypeError, ValueError):
+        numeric_total = float(total)
+        return round((float(used) / numeric_total) * 100, 2) if numeric_total else 0
+    except TypeError, ValueError:
         return None
 
 
-SENSOR_TYPES_INFO = [
-    (
-        ATTR_AGENT_VERSION,
-        "Agent Version",
-        None,
-        None,
-        None,
-        "mdi:information-outline",
-        "info",
-        True,
-    ),
-    (ATTR_CORES, "CPU Cores", None, None, None, "mdi:cpu-64-bit", "info", True),
-    (ATTR_CPU_MODEL, "CPU Model", None, None, None, "mdi:cpu-64-bit", "info", True),
-    (ATTR_KERNEL_VERSION, "Kernel Version", None, None, None, "mdi:chip", "info", True),
-    (ATTR_OS, "Operating System", None, None, None, "mdi:linux", "info", True),
-    (ATTR_THREADS, "CPU Threads", None, None, None, "mdi:cpu-64-bit", "info", True),
-    (
-        ATTR_UPTIME,
-        "Uptime",
-        UnitOfTime.SECONDS,
-        SensorDeviceClass.DURATION,
-        SensorStateClass.MEASUREMENT,
-        "mdi:timer-sand",
-        "info",
-        True,
-    ),
-]
-
-SENSOR_TYPES_STATS = [
-    (
-        "battery_percent",
-        "Battery Level",
-        PERCENTAGE,
-        SensorDeviceClass.BATTERY,
-        SensorStateClass.MEASUREMENT,
-        "mdi:battery",
-        "stats",
-        True,
-        None,
-        _battery_percent,
-    ),
-    (
-        "battery_state",
-        "Battery State",
-        None,
-        SensorDeviceClass.ENUM,
-        None,
-        "mdi:battery-charging",
-        "stats",
-        True,
-        ["Charging", "Discharging", "Empty", "Full", "Idle", "Unknown"],
-        _battery_state,
-    ),
-    (
-        ATTR_CPU_PERCENT,
-        "CPU Usage",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:cpu-64-bit",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_PERCENT,
-        "Disk Usage",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_READ_PS_MB,
-        "Disk Read Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-down-bold-circle-outline",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_TOTAL_GB,
-        "Disk Total",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_USED_GB,
-        "Disk Used",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_DISK_WRITE_PS_MB,
-        "Disk Write Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:arrow-up-bold-circle-outline",
-        "stats",
-        True,
-    ),
-    (
-        "disk_io_utilisation_percent",
-        "Disk I/O Utilisation",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 2),
-    ),
-    (
-        "disk_read_await_ms",
-        "Disk Read Await",
-        UnitOfTime.MILLISECONDS,
-        SensorDeviceClass.DURATION,
-        SensorStateClass.MEASUREMENT,
-        "mdi:timer-outline",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 3),
-    ),
-    (
-        "disk_read_time_percent",
-        "Disk Read Time",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 0),
-    ),
-    (
-        "disk_weighted_io_percent",
-        "Disk Weighted I/O",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 5),
-    ),
-    (
-        "disk_write_await_ms",
-        "Disk Write Await",
-        UnitOfTime.MILLISECONDS,
-        SensorDeviceClass.DURATION,
-        SensorStateClass.MEASUREMENT,
-        "mdi:timer-outline",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 4),
-    ),
-    (
-        "disk_write_time_percent",
-        "Disk Write Time",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-        None,
-        lambda data: _array_value(data, ATTR_DISK_IO_STATS, 1),
-    ),
-    (
-        ATTR_MEM_BUFF_CACHE_GB,
-        "Memory Buffer/Cache",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:memory",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_MEM_PERCENT,
-        "Memory Usage",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:memory",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_MEM_TOTAL_GB,
-        "Memory Total",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:memory",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_MEM_USED_GB,
-        "Memory Used",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:memory",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_MEM_ZFS_ARC_GB,
-        "Memory ZFS ARC",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:memory",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_NET_RECV_PS_MB,
-        "Network Received Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:download-network-outline",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_NET_SENT_PS_MB,
-        "Network Sent Speed",
-        UnitOfDataRate.MEGABYTES_PER_SECOND,
-        SensorDeviceClass.DATA_RATE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:upload-network-outline",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_SWAP_PERCENT,
-        "Swap Usage",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-        None,
-        lambda data: _used_percent(data, ATTR_SWAP_TOTAL_GB, ATTR_SWAP_USED_GB),
-    ),
-    (
-        ATTR_SWAP_TOTAL_GB,
-        "Swap Total",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-    ),
-    (
-        ATTR_SWAP_USED_GB,
-        "Swap Used",
-        UnitOfInformation.GIGABYTES,
-        SensorDeviceClass.DATA_SIZE,
-        SensorStateClass.MEASUREMENT,
-        "mdi:harddisk",
-        "stats",
-        True,
-    ),
-    (
-        "status",
-        "Status",
-        None,
-        SensorDeviceClass.ENUM,
-        None,
-        "mdi:server-network",
-        "status",
-        True,
-        ["Down", "Paused", "Pending", "Unknown", "Up"],
-    ),
-]
+def _os_name(value):
+    """Return the operating-system name for a Beszel type code."""
+    return {
+        0: "Linux",
+        1: "Darwin (macOS)",
+        2: "Windows",
+        3: "FreeBSD",
+    }.get(value, "Unknown")
 
 
-def _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name):
-    """Helper to create sensors for an extra filesystem."""
-    fs_sensor_types = [
-        (
-            ATTR_FS_DISK_PERCENT,
-            f"{fs_name} Usage",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-            lambda data: _used_percent(
-                data, ATTR_FS_DISK_TOTAL_GB, ATTR_FS_DISK_USED_GB
-            ),
-        ),
-        (
-            ATTR_FS_DISK_READ_PS_MB,
-            f"{fs_name} Read Speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-down-bold-circle-outline",
-            True,
-        ),
-        (
-            ATTR_FS_DISK_TOTAL_GB,
-            f"{fs_name} Total",
-            UnitOfInformation.GIGABYTES,
-            SensorDeviceClass.DATA_SIZE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-        ),
-        (
-            ATTR_FS_DISK_USED_GB,
-            f"{fs_name} Used",
-            UnitOfInformation.GIGABYTES,
-            SensorDeviceClass.DATA_SIZE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-        ),
-        (
-            ATTR_FS_DISK_WRITE_PS_MB,
-            f"{fs_name} Write Speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorDeviceClass.DATA_RATE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:arrow-up-bold-circle-outline",
-            True,
-        ),
-        (
-            "io_utilisation_percent",
-            f"{fs_name} I/O Utilisation",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 2),
-        ),
-        (
-            "read_await_ms",
-            f"{fs_name} Read Await",
-            UnitOfTime.MILLISECONDS,
-            SensorDeviceClass.DURATION,
-            SensorStateClass.MEASUREMENT,
-            "mdi:timer-outline",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 3),
-        ),
-        (
-            "read_time_percent",
-            f"{fs_name} Read Time",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 0),
-        ),
-        (
-            "weighted_io_percent",
-            f"{fs_name} Weighted I/O",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 5),
-        ),
-        (
-            "write_await_ms",
-            f"{fs_name} Write Await",
-            UnitOfTime.MILLISECONDS,
-            SensorDeviceClass.DURATION,
-            SensorStateClass.MEASUREMENT,
-            "mdi:timer-outline",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 4),
-        ),
-        (
-            "write_time_percent",
-            f"{fs_name} Write Time",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:harddisk",
-            True,
-            lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 1),
-        ),
-    ]
-
-    sensors = []
-    for (
-        api_key_suffix,
-        name_suffix_full,
-        unit,
-        dev_class,
-        state_class,
-        icon,
-        enabled,
-        *rest,
-    ) in fs_sensor_types:
-        value_func = rest[0] if rest else None
-        sensor = BeszelNestedSensor(
-            coordinator,
-            system_id,
-            system_name,
-            ATTR_EXTRA_FS,
-            fs_name,
-            api_key_suffix,
-            name_suffix_full,
-            unit,
-            dev_class,
-            state_class,
-            icon,
-            enabled,
-            value_func=value_func,
-        )
-        if sensor.native_value is not None:
-            sensors.append(sensor)
-    return sensors
+def _os_icon(value):
+    """Return the operating-system icon for a Beszel type code."""
+    return {
+        0: "mdi:linux",
+        1: "mdi:apple",
+        2: "mdi:microsoft-windows",
+        3: "mdi:freebsd",
+    }.get(value)
 
 
-def _create_gpu_sensors(
-    coordinator, system_id, system_name, gpu_id_key, gpu_name_display
-):
-    """Helper to create sensors for a GPU."""
-    gpu_sensor_types = [
-        (
-            ATTR_GPU_MEM_TOTAL_MB,
-            f"{gpu_name_display} Memory Total",
-            UnitOfInformation.MEGABYTES,
-            SensorDeviceClass.DATA_SIZE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:memory",
-            True,
-        ),
-        (
-            ATTR_GPU_MEM_USED_MB,
-            f"{gpu_name_display} Memory Used",
-            UnitOfInformation.MEGABYTES,
-            SensorDeviceClass.DATA_SIZE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:memory",
-            True,
-        ),
-        (
-            ATTR_GPU_POWER_W,
-            f"{gpu_name_display} Power Draw",
-            UnitOfPower.WATT,
-            SensorDeviceClass.POWER,
-            SensorStateClass.MEASUREMENT,
-            "mdi:lightning-bolt",
-            True,
-        ),
-        (
-            ATTR_GPU_POWER_PACKAGE_W,
-            f"{gpu_name_display} Package Power",
-            UnitOfPower.WATT,
-            SensorDeviceClass.POWER,
-            SensorStateClass.MEASUREMENT,
-            "mdi:lightning-bolt-outline",
-            True,
-        ),
-        (
-            ATTR_GPU_USAGE_PERCENT,
-            f"{gpu_name_display} Usage",
-            PERCENTAGE,
-            None,
-            SensorStateClass.MEASUREMENT,
-            "mdi:expansion-card",
-            True,
-        ),
-    ]
-
-    sensors = []
-    for (
-        api_key_suffix,
-        name_suffix_full,
-        unit,
-        dev_class,
-        state_class,
-        icon,
-        enabled,
-    ) in gpu_sensor_types:
-        sensor = BeszelNestedSensor(
-            coordinator,
-            system_id,
-            system_name,
-            ATTR_GPU_DATA,
-            gpu_id_key,
-            api_key_suffix,
-            name_suffix_full,
-            unit,
-            dev_class,
-            state_class,
-            icon,
-            enabled,
-        )
-        if sensor.native_value is not None:
-            sensors.append(sensor)
-    return sensors
+def _device_details(system_id, system_data):
+    """Return registry details for a Beszel system."""
+    info = _mapping(system_data.get("info"))
+    os_name = _os_name(info.get(ATTR_OS))
+    return {
+        "model": os_name if os_name != "Unknown" else None,
+        "name": system_data.get("name", system_id),
+        "sw_version": info.get(ATTR_AGENT_VERSION),
+    }
 
 
-def _create_available_sensors(coordinator):
-    """Create sensors for all values currently reported by Beszel."""
+def _normalise_value(value, native_unit):
+    """Normalise values whose Home Assistant representation is constrained."""
+    if value is not None and native_unit == PERCENTAGE:
+        try:
+            return round(float(value), 2)
+        except TypeError, ValueError:
+            return None
+    return value
+
+
+def _uptime_value(value):
+    """Return a valid duration from a Beszel uptime value."""
+    if value is None:
+        return None
+    try:
+        total_seconds = float(value)
+    except TypeError, ValueError:
+        return None
+    if total_seconds < 0:
+        return None
+    return int(total_seconds) if total_seconds.is_integer() else total_seconds
+
+
+def _standard_value(system_data, description):
+    """Return a value for a standard sensor description."""
+    if description.data_source == "status":
+        status = system_data.get("status")
+        return str(status).lower() if status is not None else "unknown"
+
+    data = _mapping(system_data.get(description.data_source))
+    if description.value_fn:
+        return description.value_fn(data)
+
+    value = data.get(description.api_key)
+    if description.api_key == ATTR_OS and description.data_source == "info":
+        return _os_name(value)
+    if description.api_key == ATTR_UPTIME and description.data_source == "info":
+        return _uptime_value(value)
+    return _normalise_value(value, description.native_unit)
+
+
+def _nested_value(system_data, parent_key, item_key, description):
+    """Return a value from a nested Beszel statistics mapping."""
+    stats = _mapping(system_data.get("stats"))
+    parent = _mapping(stats.get(parent_key))
+    item = _mapping(parent.get(item_key))
+    if description.value_fn:
+        return description.value_fn(item)
+    return _normalise_value(item.get(description.api_key), description.native_unit)
+
+
+INFO_SENSOR_DESCRIPTIONS = (
+    BeszelSensorDescription(
+        api_key=ATTR_AGENT_VERSION,
+        translation_key="agent_version",
+        data_source="info",
+        icon="mdi:information-outline",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_CORES,
+        translation_key="cpu_cores",
+        data_source="info",
+        icon="mdi:cpu-64-bit",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_CPU_MODEL,
+        translation_key="cpu_model",
+        data_source="info",
+        icon="mdi:cpu-64-bit",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_THREADS,
+        translation_key="cpu_threads",
+        data_source="info",
+        icon="mdi:cpu-64-bit",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_KERNEL_VERSION,
+        translation_key="kernel_version",
+        data_source="info",
+        icon="mdi:chip",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_OS,
+        translation_key="operating_system",
+        data_source="info",
+        icon="mdi:linux",
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_UPTIME,
+        translation_key="uptime",
+        data_source="info",
+        device_class=SensorDeviceClass.DURATION,
+        icon="mdi:timer-sand",
+        native_unit=UnitOfTime.SECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
+STATS_SENSOR_DESCRIPTIONS = (
+    BeszelSensorDescription(
+        api_key="battery_percent",
+        translation_key="battery_level",
+        device_class=SensorDeviceClass.BATTERY,
+        icon="mdi:battery",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_battery_percent,
+    ),
+    BeszelSensorDescription(
+        api_key="battery_state",
+        translation_key="battery_state",
+        device_class=SensorDeviceClass.ENUM,
+        icon="mdi:battery-charging",
+        options=("charging", "discharging", "empty", "full", "idle", "unknown"),
+        value_fn=_battery_state,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_CPU_PERCENT,
+        translation_key="cpu_usage",
+        icon="mdi:cpu-64-bit",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="disk_io_utilisation_percent",
+        translation_key="disk_io_utilisation",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 2),
+    ),
+    BeszelSensorDescription(
+        api_key="disk_read_await_ms",
+        translation_key="disk_read_await",
+        device_class=SensorDeviceClass.DURATION,
+        icon="mdi:timer-outline",
+        native_unit=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 3),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_DISK_READ_PS_MB,
+        translation_key="disk_read_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:arrow-down-bold-circle-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="disk_read_time_percent",
+        translation_key="disk_read_time",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 0),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_DISK_TOTAL_GB,
+        translation_key="disk_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_DISK_PERCENT,
+        translation_key="disk_usage",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_DISK_USED_GB,
+        translation_key="disk_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="disk_weighted_io_percent",
+        translation_key="disk_weighted_io",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 5),
+    ),
+    BeszelSensorDescription(
+        api_key="disk_write_await_ms",
+        translation_key="disk_write_await",
+        device_class=SensorDeviceClass.DURATION,
+        icon="mdi:timer-outline",
+        native_unit=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 4),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_DISK_WRITE_PS_MB,
+        translation_key="disk_write_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:arrow-up-bold-circle-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="disk_write_time_percent",
+        translation_key="disk_write_time",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_DISK_IO_STATS, 1),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_MEM_BUFF_CACHE_GB,
+        translation_key="memory_buffer_cache",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_MEM_TOTAL_GB,
+        translation_key="memory_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_MEM_PERCENT,
+        translation_key="memory_usage",
+        icon="mdi:memory",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_MEM_USED_GB,
+        translation_key="memory_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_MEM_ZFS_ARC_GB,
+        translation_key="memory_zfs_arc",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_NET_RECV_PS_MB,
+        translation_key="network_received_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:download-network-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_NET_SENT_PS_MB,
+        translation_key="network_sent_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:upload-network-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="status",
+        translation_key="status",
+        data_source="status",
+        device_class=SensorDeviceClass.ENUM,
+        icon="mdi:server-network",
+        options=("down", "paused", "pending", "unknown", "up"),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_SWAP_TOTAL_GB,
+        translation_key="swap_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_SWAP_PERCENT,
+        translation_key="swap_usage",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _used_percent(
+            data, ATTR_SWAP_TOTAL_GB, ATTR_SWAP_USED_GB
+        ),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_SWAP_USED_GB,
+        translation_key="swap_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
+EXTRA_FS_SENSOR_DESCRIPTIONS = (
+    BeszelSensorDescription(
+        api_key="io_utilisation_percent",
+        translation_key="filesystem_io_utilisation",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 2),
+    ),
+    BeszelSensorDescription(
+        api_key="read_await_ms",
+        translation_key="filesystem_read_await",
+        device_class=SensorDeviceClass.DURATION,
+        icon="mdi:timer-outline",
+        native_unit=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 3),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_FS_DISK_READ_PS_MB,
+        translation_key="filesystem_read_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:arrow-down-bold-circle-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="read_time_percent",
+        translation_key="filesystem_read_time",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 0),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_FS_DISK_TOTAL_GB,
+        translation_key="filesystem_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_FS_DISK_PERCENT,
+        translation_key="filesystem_usage",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _used_percent(
+            data, ATTR_FS_DISK_TOTAL_GB, ATTR_FS_DISK_USED_GB
+        ),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_FS_DISK_USED_GB,
+        translation_key="filesystem_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:harddisk",
+        native_unit=UnitOfInformation.GIGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="weighted_io_percent",
+        translation_key="filesystem_weighted_io",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 5),
+    ),
+    BeszelSensorDescription(
+        api_key="write_await_ms",
+        translation_key="filesystem_write_await",
+        device_class=SensorDeviceClass.DURATION,
+        icon="mdi:timer-outline",
+        native_unit=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 4),
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_FS_DISK_WRITE_PS_MB,
+        translation_key="filesystem_write_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        icon="mdi:arrow-up-bold-circle-outline",
+        native_unit=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key="write_time_percent",
+        translation_key="filesystem_write_time",
+        icon="mdi:harddisk",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: _array_value(data, ATTR_FS_DISK_IO_STATS, 1),
+    ),
+)
+
+GPU_SENSOR_DESCRIPTIONS = (
+    BeszelSensorDescription(
+        api_key=ATTR_GPU_MEM_TOTAL_MB,
+        translation_key="gpu_memory_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.MEGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_GPU_MEM_USED_MB,
+        translation_key="gpu_memory_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        icon="mdi:memory",
+        native_unit=UnitOfInformation.MEGABYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_GPU_POWER_PACKAGE_W,
+        translation_key="gpu_package_power",
+        device_class=SensorDeviceClass.POWER,
+        icon="mdi:lightning-bolt-outline",
+        native_unit=UnitOfPower.WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_GPU_POWER_W,
+        translation_key="gpu_power_draw",
+        device_class=SensorDeviceClass.POWER,
+        icon="mdi:lightning-bolt",
+        native_unit=UnitOfPower.WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    BeszelSensorDescription(
+        api_key=ATTR_GPU_USAGE_PERCENT,
+        translation_key="gpu_usage",
+        icon="mdi:expansion-card",
+        native_unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
+
+def _standard_unique_id(coordinator, system_id, description):
+    return (
+        f"{DOMAIN}_{coordinator.config_entry_id}_{system_id}_"
+        f"{description.data_source}_{description.api_key}"
+    )
+
+
+def _nested_unique_id(coordinator, system_id, parent_key, item_key, api_key):
+    return (
+        f"{DOMAIN}_{coordinator.config_entry_id}_{system_id}_stats_"
+        f"{parent_key}_{item_key}_{api_key}"
+    )
+
+
+def _create_available_sensors(coordinator, known_unique_ids=None):
+    """Create sensors for newly reported Beszel values."""
+    known_unique_ids = known_unique_ids or set()
     entities = []
-    for system_id, system_data in (coordinator.data or {}).items():
-        system_name = system_data.get("name", system_id)
+    for system_id, raw_system_data in (coordinator.data or {}).items():
+        system_data = _mapping(raw_system_data)
 
-        for sensor_type in (*SENSOR_TYPES_INFO, *SENSOR_TYPES_STATS):
-            (
-                api_key,
-                name_suffix,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                data_key,
-                enabled,
-                *rest,
-            ) = sensor_type
-            options = rest[0] if rest else None
-            value_func = rest[1] if len(rest) > 1 else None
-            sensor = BeszelSensor(
-                coordinator,
-                system_id,
-                system_name,
-                api_key,
-                name_suffix,
-                unit,
-                dev_class,
-                state_class,
-                icon,
-                data_key,
-                enabled,
-                options=options,
-                value_func=value_func,
-            )
-            value = sensor.native_value
-            if data_key == "status" or (
+        for description in (*INFO_SENSOR_DESCRIPTIONS, *STATS_SENSOR_DESCRIPTIONS):
+            unique_id = _standard_unique_id(coordinator, system_id, description)
+            if unique_id in known_unique_ids:
+                continue
+            value = _standard_value(system_data, description)
+            if description.data_source == "status" or (
                 value is not None
                 and not (isinstance(value, str) and value.lower() == "unknown")
             ):
-                entities.append(sensor)
+                entities.append(BeszelSensor(coordinator, system_id, description))
 
-        extra_fs_data = system_data.get("stats", {}).get(ATTR_EXTRA_FS, {})
-        for fs_name in extra_fs_data:
-            entities.extend(
-                _create_extra_fs_sensors(coordinator, system_id, system_name, fs_name)
-            )
-
-        gpu_data_map = system_data.get("stats", {}).get(ATTR_GPU_DATA, {})
-        for gpu_id, gpu_stats in gpu_data_map.items():
-            gpu_name = gpu_stats.get(ATTR_GPU_NAME, gpu_id)
-            entities.extend(
-                _create_gpu_sensors(
-                    coordinator, system_id, system_name, gpu_id, gpu_name
+        stats = _mapping(system_data.get("stats"))
+        extra_filesystems = _mapping(stats.get(ATTR_EXTRA_FS))
+        for filesystem_name in sorted(extra_filesystems, key=str):
+            for description in EXTRA_FS_SENSOR_DESCRIPTIONS:
+                unique_id = _nested_unique_id(
+                    coordinator,
+                    system_id,
+                    ATTR_EXTRA_FS,
+                    filesystem_name,
+                    description.api_key,
                 )
-            )
-
-        temperatures = system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
-        for temperature_name in temperatures:
-            sensor = BeszelTemperatureSensor(
-                coordinator, system_id, system_name, temperature_name
-            )
-            if sensor.native_value is not None:
+                if unique_id in known_unique_ids:
+                    continue
+                if (
+                    _nested_value(
+                        system_data,
+                        ATTR_EXTRA_FS,
+                        filesystem_name,
+                        description,
+                    )
+                    is None
+                ):
+                    continue
+                sensor = BeszelNestedSensor(
+                    coordinator,
+                    system_id,
+                    ATTR_EXTRA_FS,
+                    filesystem_name,
+                    description,
+                    {"filesystem": str(filesystem_name)},
+                )
                 entities.append(sensor)
+
+        gpu_data = _mapping(stats.get(ATTR_GPU_DATA))
+        for gpu_id in sorted(gpu_data, key=str):
+            gpu_stats = _mapping(gpu_data.get(gpu_id))
+            gpu_name = gpu_stats.get(ATTR_GPU_NAME) or gpu_id
+            for description in GPU_SENSOR_DESCRIPTIONS:
+                unique_id = _nested_unique_id(
+                    coordinator,
+                    system_id,
+                    ATTR_GPU_DATA,
+                    gpu_id,
+                    description.api_key,
+                )
+                if unique_id in known_unique_ids:
+                    continue
+                if (
+                    _nested_value(system_data, ATTR_GPU_DATA, gpu_id, description)
+                    is None
+                ):
+                    continue
+                sensor = BeszelNestedSensor(
+                    coordinator,
+                    system_id,
+                    ATTR_GPU_DATA,
+                    gpu_id,
+                    description,
+                    {"gpu": str(gpu_name)},
+                )
+                entities.append(sensor)
+
+        temperatures = _mapping(stats.get(ATTR_TEMPERATURES))
+        for temperature_name in sorted(temperatures, key=str):
+            unique_id = _standard_unique_id(
+                coordinator,
+                system_id,
+                BeszelSensorDescription(
+                    api_key=temperature_name,
+                    translation_key="temperature",
+                    data_source="stats",
+                ),
+            )
+            if unique_id in known_unique_ids:
+                continue
+            value = temperatures.get(temperature_name)
+            try:
+                value = round(float(value), 1) if value is not None else None
+            except TypeError, ValueError:
+                value = None
+            if value is None:
+                continue
+            sensor = BeszelTemperatureSensor(coordinator, system_id, temperature_name)
+            entities.append(sensor)
 
     return entities
 
@@ -719,75 +745,51 @@ def _create_available_sensors(coordinator):
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Beszel sensor entities based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    device_registry = dr.async_get(hass)
     known_unique_ids = set()
+
+    def update_registered_devices():
+        for system_id, raw_system_data in (coordinator.data or {}).items():
+            device = device_registry.async_get_device(
+                identifiers={(DOMAIN, f"{entry.entry_id}_{system_id}")}
+            )
+            if device is None:
+                continue
+            details = _device_details(system_id, _mapping(raw_system_data))
+            changes = {
+                key: value
+                for key, value in details.items()
+                if value is not None and getattr(device, key) != value
+            }
+            if changes:
+                device_registry.async_update_device(device.id, **changes)
 
     @callback
     def async_discover_entities():
-        new_entities = []
-        for entity in _create_available_sensors(coordinator):
-            if entity.unique_id in known_unique_ids:
-                continue
-            known_unique_ids.add(entity.unique_id)
-            new_entities.append(entity)
+        update_registered_devices()
+        new_entities = _create_available_sensors(coordinator, known_unique_ids)
         if new_entities:
+            known_unique_ids.update(entity.unique_id for entity in new_entities)
             async_add_entities(new_entities)
 
     async_discover_entities()
     entry.async_on_unload(coordinator.async_add_listener(async_discover_entities))
 
 
-class BeszelNestedSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for values nested within a sub-dictionary (e.g., extra_fs, gpu_data)."""
+class BeszelCoordinatorSensor(CoordinatorEntity, SensorEntity):
+    """Base class for a sensor associated with a Beszel system."""
 
-    def __init__(
-        self,
-        coordinator,
-        system_id,
-        system_name,
-        parent_key,
-        item_key,
-        api_value_key,
-        name_full,
-        unit,
-        device_class,
-        state_class,
-        icon,
-        enabled_by_default=True,
-        value_func=None,
-    ):
-        """Initialise the nested sensor."""
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, system_id):
+        """Initialise the system sensor."""
         super().__init__(coordinator)
         self._system_id = system_id
-        self._system_name = system_name
-        self._attr_device_class = device_class
-        self._attr_entity_registry_enabled_default = enabled_by_default
-        self._attr_name = name_full
-        self._attr_native_unit_of_measurement = unit
-        self._attr_state_class = state_class
-        self._attr_icon = icon
-        self._attr_has_entity_name = True
-
-        unique_part = f"{parent_key}_{item_key}_{api_value_key}"
-        self._attr_unique_id = (
-            f"{DOMAIN}_{coordinator.config_entry_id}_{system_id}_stats_{unique_part}"
-        )
-
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{coordinator.config_entry_id}_{system_id}")},
-            "manufacturer": "Beszel",
-            "model": "Monitored System",
-            "name": system_name,
-        }
-
-        self._api_value_key = api_value_key
-        self._item_key = item_key
-        self._parent_key = parent_key
-        self._value_func = value_func
 
     @property
     def system_data(self):
-        """Shortcut to get the data for this sensor's system."""
-        return (self.coordinator.data or {}).get(self._system_id, {})
+        """Return current data for this sensor's system."""
+        return _mapping((self.coordinator.data or {}).get(self._system_id))
 
     @property
     def available(self):
@@ -799,233 +801,129 @@ class BeszelNestedSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def native_value(self):
-        """Return the state of the sensor."""
-        parent_dict = self.system_data.get("stats", {}).get(self._parent_key, {})
-        item_dict = parent_dict.get(self._item_key, {})
+    def device_info(self):
+        """Return current device information for the system."""
+        details = _device_details(self._system_id, self.system_data)
+        device_info = {
+            "identifiers": {
+                (DOMAIN, f"{self.coordinator.config_entry_id}_{self._system_id}")
+            },
+            "manufacturer": "Beszel",
+            "name": details["name"],
+        }
+        if details["model"]:
+            device_info["model"] = details["model"]
+        if details["sw_version"]:
+            device_info["sw_version"] = details["sw_version"]
+        return device_info
 
-        if self._value_func:
-            return self._value_func(item_dict)
 
-        value = item_dict.get(self._api_value_key)
-
-        if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
-            try:
-                return round(float(value), 2)
-            except (TypeError, ValueError):
-                return None
-        return value
-
-
-class BeszelSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a Beszel Sensor."""
-
-    _attr_has_entity_name = True
+class BeszelNestedSensor(BeszelCoordinatorSensor):
+    """Sensor for a value nested within a Beszel statistics mapping."""
 
     def __init__(
         self,
         coordinator,
         system_id,
-        system_name,
-        api_key,
-        name_suffix,
-        unit,
-        device_class,
-        state_class,
-        icon,
-        data_source_key,
-        enabled_by_default=True,
-        options=None,
-        value_func=None,
+        parent_key,
+        item_key,
+        description,
+        translation_placeholders,
     ):
-        """Initialise the sensor."""
-        super().__init__(coordinator)
-        self._api_key = api_key
-        self._data_source_key = data_source_key
-        self._system_id = system_id
-        self._system_name = system_name
-        self._attr_device_class = device_class
-        self._attr_entity_registry_enabled_default = enabled_by_default
-        self._attr_name = name_suffix
-        self._attr_native_unit_of_measurement = unit
-        self._attr_state_class = state_class
-        self._attr_unique_id = (
-            f"{DOMAIN}_{coordinator.config_entry_id}_{self._system_id}_"
-            f"{self._data_source_key}_{self._api_key}"
+        """Initialise the nested sensor."""
+        super().__init__(coordinator, system_id)
+        self._description = description
+        self._item_key = item_key
+        self._parent_key = parent_key
+        self._attr_device_class = description.device_class
+        self._attr_icon = description.icon
+        self._attr_native_unit_of_measurement = description.native_unit
+        self._attr_state_class = description.state_class
+        self._attr_translation_key = description.translation_key
+        self._attr_translation_placeholders = translation_placeholders
+        self._attr_unique_id = _nested_unique_id(
+            coordinator,
+            system_id,
+            parent_key,
+            item_key,
+            description.api_key,
         )
-        self._icon_definition = icon
-        self._value_func = value_func
-
-        if device_class == SensorDeviceClass.ENUM and options:
-            self._attr_options = options
-
-        self._attr_device_info = {
-            "identifiers": {
-                (DOMAIN, f"{coordinator.config_entry_id}_{self._system_id}")
-            },
-            "manufacturer": "Beszel",
-            "model": "Monitored System",
-            "name": self._system_name,
-        }
-
-        initial_system_data = (coordinator.data or {}).get(self._system_id, {})
-        if initial_system_data and not initial_system_data.get("error"):
-            agent_version = initial_system_data.get("info", {}).get(
-                ATTR_AGENT_VERSION, "Unknown"
-            )
-            os_type_raw = initial_system_data.get("info", {}).get(ATTR_OS)
-            os_name = self._map_os_type_to_name(os_type_raw)
-            self._attr_device_info["sw_version"] = agent_version
-            if os_name != "Unknown":
-                self._attr_device_info["model"] = os_name
-
-    @callback
-    def _handle_coordinator_update(self):
-        """Handle updated data from the coordinator."""
-        current_data = (self.coordinator.data or {}).get(self._system_id, {})
-        if current_data and not current_data.get("error"):
-            new_agent_version = current_data.get("info", {}).get(ATTR_AGENT_VERSION)
-            new_os_raw = current_data.get("info", {}).get(ATTR_OS)
-            new_os_name = self._map_os_type_to_name(new_os_raw)
-
-            if (
-                new_agent_version
-                and self._attr_device_info.get("sw_version") != new_agent_version
-            ):
-                self._attr_device_info["sw_version"] = new_agent_version
-
-            if (
-                new_os_name != "Unknown"
-                and self._attr_device_info.get("model") != new_os_name
-            ):
-                self._attr_device_info["model"] = new_os_name
-
-        super()._handle_coordinator_update()
-
-    def _map_os_type_to_icon(self, os_type_raw):
-        """Map OS type code to an icon string."""
-        if os_type_raw == 0:
-            return "mdi:linux"
-        if os_type_raw == 1:
-            return "mdi:apple"
-        if os_type_raw == 2:
-            return "mdi:microsoft-windows"
-        if os_type_raw == 3:
-            return "mdi:freebsd"
-        return None
-
-    def _map_os_type_to_name(self, os_type_raw):
-        """Map OS type code to a human-readable name."""
-        if os_type_raw == 0:
-            return "Linux"
-        if os_type_raw == 1:
-            return "Darwin (macOS)"
-        if os_type_raw == 2:
-            return "Windows"
-        if os_type_raw == 3:
-            return "FreeBSD"
-        return "Unknown"
-
-    @property
-    def available(self):
-        """Return True if entity is available."""
-        if not super().available:
-            return False
-
-        system_specific_data = (self.coordinator.data or {}).get(self._system_id)
-        return bool(system_specific_data) and "error" not in system_specific_data
-
-    @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        if self._api_key == ATTR_OS and self._data_source_key == "info":
-            os_type_raw = self.system_data.get("info", {}).get(ATTR_OS)
-            mapped_icon = self._map_os_type_to_icon(os_type_raw)
-            if mapped_icon:
-                return mapped_icon
-        return self._icon_definition
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        if self._data_source_key == "status":
-            current_status = self.system_data.get("status", "unknown")
-            return str(current_status).title()
+        return _nested_value(
+            self.system_data,
+            self._parent_key,
+            self._item_key,
+            self._description,
+        )
 
-        if self._api_key == ATTR_UPTIME and self._data_source_key == "info":
-            raw_seconds_val = self.system_data.get("info", {}).get(ATTR_UPTIME)
-            if raw_seconds_val is None:
-                return None
-            try:
-                total_seconds = float(raw_seconds_val)
-            except (TypeError, ValueError):
-                return None
 
-            if total_seconds < 0:
-                return None
+class BeszelSensor(BeszelCoordinatorSensor):
+    """Representation of a Beszel sensor."""
 
-            return int(total_seconds) if total_seconds.is_integer() else total_seconds
-
-        data_dict = self.system_data.get(self._data_source_key, {})
-
-        if not isinstance(data_dict, dict):
-            return None
-
-        if self._value_func:
-            return self._value_func(data_dict)
-
-        value = data_dict.get(self._api_key)
-
-        if self._api_key == ATTR_OS and self._data_source_key == "info":
-            return self._map_os_type_to_name(value)
-
-        if value is not None and self._attr_native_unit_of_measurement == PERCENTAGE:
-            try:
-                return round(float(value), 2)
-            except (TypeError, ValueError):
-                return None
-        return value
+    def __init__(self, coordinator, system_id, description):
+        """Initialise the sensor."""
+        super().__init__(coordinator, system_id)
+        self._description = description
+        self._attr_device_class = description.device_class
+        self._attr_icon = description.icon
+        self._attr_native_unit_of_measurement = description.native_unit
+        self._attr_options = list(description.options) if description.options else None
+        self._attr_state_class = description.state_class
+        self._attr_translation_key = description.translation_key
+        self._attr_unique_id = _standard_unique_id(coordinator, system_id, description)
 
     @property
-    def system_data(self):
-        """Shortcut to get the data for this sensor's system."""
-        return (self.coordinator.data or {}).get(self._system_id, {})
+    def icon(self):
+        """Return the sensor icon."""
+        if (
+            self._description.api_key == ATTR_OS
+            and self._description.data_source == "info"
+        ):
+            info = _mapping(self.system_data.get("info"))
+            return _os_icon(info.get(ATTR_OS)) or self._description.icon
+        return self._description.icon
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return _standard_value(self.system_data, self._description)
 
 
 class BeszelTemperatureSensor(BeszelSensor):
-    """Representation of a Beszel Temperature Sensor."""
+    """Representation of a Beszel temperature sensor."""
 
-    def __init__(self, coordinator, system_id, system_name, temp_sensor_key):
+    def __init__(self, coordinator, system_id, temperature_key):
         """Initialise the temperature sensor."""
-        self._temp_sensor_key = temp_sensor_key
-        key_lower_for_name = temp_sensor_key.lower()
-
-        if "cpu" in key_lower_for_name and "thermal" in key_lower_for_name:
-            name_to_use = "CPU Temperature"
-        else:
-            processed_key_name = temp_sensor_key.replace("_", " ").title()
-            if "Nvme" in processed_key_name:
-                processed_key_name = processed_key_name.replace("Nvme", "NVME")
-            name_to_use = f"Temperature {processed_key_name}"
-
+        self._temperature_key = temperature_key
+        key_lower = temperature_key.lower()
+        is_cpu_temperature = "cpu" in key_lower and "thermal" in key_lower
+        translation_key = "cpu_temperature" if is_cpu_temperature else "temperature"
         super().__init__(
             coordinator,
             system_id,
-            system_name,
-            temp_sensor_key,
-            name_to_use,
-            UnitOfTemperature.CELSIUS,
-            SensorDeviceClass.TEMPERATURE,
-            SensorStateClass.MEASUREMENT,
-            "mdi:thermometer",
-            "stats",
-            True,
+            BeszelSensorDescription(
+                api_key=temperature_key,
+                translation_key=translation_key,
+                data_source="stats",
+                device_class=SensorDeviceClass.TEMPERATURE,
+                icon="mdi:thermometer",
+                native_unit=UnitOfTemperature.CELSIUS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
         )
+        if not is_cpu_temperature:
+            processed_name = temperature_key.replace("_", " ").title()
+            self._attr_translation_placeholders = {
+                "temperature": processed_name.replace("Nvme", "NVME")
+            }
 
     @property
     def icon(self):
         """Return the icon of the temperature sensor."""
-        key_lower = self._temp_sensor_key.lower()
+        key_lower = self._temperature_key.lower()
         if "cpu" in key_lower or "thermal" in key_lower:
             return "mdi:cpu-64-bit"
         return super().icon
@@ -1033,11 +931,12 @@ class BeszelTemperatureSensor(BeszelSensor):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        temps_dict = self.system_data.get("stats", {}).get(ATTR_TEMPERATURES, {})
-        value = temps_dict.get(self._temp_sensor_key)
-        if value is not None:
-            try:
-                return round(float(value), 1)
-            except (TypeError, ValueError):
-                return None
-        return None
+        stats = _mapping(self.system_data.get("stats"))
+        temperatures = _mapping(stats.get(ATTR_TEMPERATURES))
+        value = temperatures.get(self._temperature_key)
+        if value is None:
+            return None
+        try:
+            return round(float(value), 1)
+        except TypeError, ValueError:
+            return None

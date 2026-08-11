@@ -89,6 +89,7 @@ class _ConfigFlow:
 
 
 class _FlowResultType(Enum):
+    ABORT = "abort"
     CREATE_ENTRY = "create_entry"
     FORM = "form"
 
@@ -173,13 +174,16 @@ class _DeviceRegistry:
     def __init__(self):
         self.devices = {}
 
-    def async_get_or_create(self, *, config_entry_id, identifiers):
+    def async_get_or_create(self, *, config_entry_id, identifiers, **details):
         """Create a device registry entry."""
         device_id = uuid4().hex
         device = SimpleNamespace(
             config_entries={config_entry_id},
             id=device_id,
             identifiers=identifiers,
+            model=details.get("model"),
+            name=details.get("name"),
+            sw_version=details.get("sw_version"),
         )
         self.devices[device_id] = device
         return device
@@ -188,9 +192,24 @@ class _DeviceRegistry:
         """Return a device registry entry."""
         return self.devices.get(device_id)
 
-    def async_update_device(self, device_id, *, new_identifiers):
+    def async_get_device(self, *, identifiers):
+        """Return a device matching any supplied identifier."""
+        return next(
+            (
+                device
+                for device in self.devices.values()
+                if device.identifiers.intersection(identifiers)
+            ),
+            None,
+        )
+
+    def async_update_device(self, device_id, *, new_identifiers=None, **changes):
         """Update a device registry entry."""
-        self.devices[device_id].identifiers = new_identifiers
+        device = self.devices[device_id]
+        if new_identifiers is not None:
+            device.identifiers = new_identifiers
+        for key, value in changes.items():
+            setattr(device, key, value)
 
 
 class _ConfigEntries:

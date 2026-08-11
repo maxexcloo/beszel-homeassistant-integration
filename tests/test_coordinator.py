@@ -2,13 +2,17 @@
 
 import unittest
 
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from support import FakeHomeAssistant
 
+from custom_components.beszel.api import BeszelApiAuthError
 from custom_components.beszel.coordinator import BeszelDataUpdateCoordinator
 
 
 class FakeApiClient:
     """Return deterministic Beszel data."""
+
+    host = "http://beszel.local"
 
     async def async_authenticate(self):
         """Authenticate successfully."""
@@ -49,9 +53,57 @@ class BeszelDataUpdateCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             }
         }
 
-        data = await coordinator._async_update_data()
+        with self.assertLogs(
+            "custom_components.beszel.coordinator", level="WARNING"
+        ) as logs:
+            data = await coordinator._async_update_data()
 
         self.assertEqual(data["healthy"]["stats"], {"cpu": 12.5})
         self.assertEqual(data["failed"]["stats"], {"cpu": 20})
         self.assertEqual(data["failed"]["status"], "down")
         self.assertEqual(data["failed"]["error"], "stats unavailable")
+        self.assertTrue(
+            all("http://beszel.local" in message for message in logs.output)
+        )
+
+    async def test_statistics_authentication_failure_starts_reauthentication(self):
+        """An authentication failure for one system is not treated as partial."""
+
+        class AuthenticationFailureApi(FakeApiClient):
+            async def async_get_latest_system_stats(self, system_id):
+                raise BeszelApiAuthError("expired token")
+
+            async def async_get_systems(self):
+                return [{"id": "system", "name": "Server", "status": "up"}]
+
+        coordinator = BeszelDataUpdateCoordinator(
+            FakeHomeAssistant(),
+            api_client=AuthenticationFailureApi(),
+            config_entry_id="entry",
+            update_interval_seconds=60,
+        )
+
+        with self.assertRaisesRegex(ConfigEntryAuthFailed, "beszel.local"):
+            await coordinator._async_update_data()
+
+    async def test_missing_statistics_remain_unavailable(self):
+        """A missing latest record remains distinct from empty statistics."""
+
+        class MissingStatisticsApi(FakeApiClient):
+            async def async_get_latest_system_stats(self, system_id):
+                return None
+
+            async def async_get_systems(self):
+                return [{"id": "system", "name": "Server", "status": "up"}]
+
+        coordinator = BeszelDataUpdateCoordinator(
+            FakeHomeAssistant(),
+            api_client=MissingStatisticsApi(),
+            config_entry_id="entry",
+            update_interval_seconds=60,
+        )
+
+        data = await coordinator._async_update_data()
+
+        self.assertIsNone(data["system"]["info"])
+        self.assertIsNone(data["system"]["stats"])

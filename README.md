@@ -18,6 +18,7 @@ sensors for hardware, operating system, storage, and network statistics.
 ## Features
 
 - Battery level and charging state.
+- Cached system metrics survive temporary per-system API failures.
 - CPU model, topology, and utilisation.
 - Disk capacity, throughput, latency, and I/O utilisation.
 - Dynamic discovery when systems or metrics appear after setup.
@@ -26,6 +27,7 @@ sensors for hardware, operating system, storage, and network statistics.
 - Multiple Beszel Hubs and systems without device or entity collisions.
 - Per-filesystem and temperature sensors.
 - Reauthentication and reconfiguration through Home Assistant.
+- Translated entity names and enum states.
 
 ## Installation
 
@@ -60,7 +62,9 @@ Enter the following values when adding the integration:
 
 Home Assistant creates sensors only when Beszel reports the corresponding data.
 New systems and metrics are discovered during later updates without reloading the
-integration.
+integration. Missing measurements remain unavailable rather than being reported as
+zero. If one system temporarily fails while the Hub remains reachable, its cached
+metrics are retained until a later successful update.
 
 To expose additional disks, configure the Beszel agent using the
 [additional disks guide](https://beszel.dev/guide/additional-disks). Each reported
@@ -73,7 +77,7 @@ expires.
 ## Contributing
 
 1. Fork the repository and create a feature branch.
-2. Install Python 3.14 and Ruff.
+2. Install Python 3.14 and Ruff 0.16.2.
 3. Follow the repository standards in `AGENTS.md`.
 4. Run the same checks as CI:
 

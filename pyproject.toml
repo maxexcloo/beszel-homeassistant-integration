@@ -1,0 +1,3 @@
+[tool.ruff]
+required-version = "==0.16.2"
+target-version = "py314"

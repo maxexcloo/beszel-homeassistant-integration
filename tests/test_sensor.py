@@ -1,7 +1,7 @@
 """Tests for Beszel sensors."""
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from support import FakeHomeAssistant, SensorDeviceClass, UnitOfTime
 
@@ -39,11 +39,38 @@ class BeszelSensorTests(unittest.IsolatedAsyncioTestCase):
         uptime = next(
             sensor for sensor in sensors if sensor.unique_id.endswith("_info_u")
         )
+        status = next(
+            sensor for sensor in sensors if sensor.unique_id.endswith("_status_status")
+        )
         self.assertIs(uptime.device_class, SensorDeviceClass.DURATION)
         self.assertIs(uptime.native_unit_of_measurement, UnitOfTime.SECONDS)
         self.assertEqual(uptime.native_value, 90)
         self.assertEqual(
             uptime.device_info["identifiers"], {("beszel", "entry_system")}
+        )
+        self.assertEqual(uptime.translation_key, "uptime")
+        self.assertEqual(status.native_value, "up")
+        self.assertEqual(status.options, ["down", "paused", "pending", "unknown", "up"])
+
+    def test_malformed_nested_data_is_unavailable(self):
+        """Null and malformed nested values do not interrupt discovery."""
+        coordinator = MagicMock()
+        coordinator.config_entry_id = "entry"
+        coordinator.data = {
+            "system": {
+                "id": "system",
+                "info": None,
+                "name": "Server",
+                "stats": {"efs": {"disk": None}, "g": {"0": None}, "t": []},
+                "status": "up",
+            }
+        }
+
+        sensors = _create_available_sensors(coordinator)
+
+        self.assertEqual(
+            {sensor.unique_id for sensor in sensors},
+            {"beszel_entry_system_status_status"},
         )
 
     def test_new_metrics_are_discovered_on_later_data(self):
@@ -113,3 +140,43 @@ class BeszelSensorTests(unittest.IsolatedAsyncioTestCase):
             {entity.unique_id for entity in later_entities},
             {"beszel_entry_system_stats_cpu"},
         )
+
+        with patch(
+            "custom_components.beszel.sensor.BeszelSensor",
+            side_effect=AssertionError("known sensors should not be reconstructed"),
+        ):
+            listener()
+
+    async def test_device_details_follow_system_changes(self):
+        """Coordinator updates refresh an existing device's Beszel metadata."""
+        coordinator = MagicMock()
+        coordinator.config_entry_id = "entry"
+        coordinator.data = {
+            "system": {
+                "id": "system",
+                "info": {},
+                "name": "Old Name",
+                "stats": {},
+                "status": "up",
+            }
+        }
+        hass = FakeHomeAssistant()
+        hass.data[DOMAIN] = {"entry": coordinator}
+        entry = MagicMock(entry_id="entry")
+
+        await async_setup_entry(hass, entry, MagicMock())
+        device = hass.device_registry.async_get_or_create(
+            config_entry_id="entry",
+            identifiers={(DOMAIN, "entry_system")},
+            name="Old Name",
+        )
+
+        coordinator.data["system"].update(
+            {"info": {"os": 0, "v": "1.2.3"}, "name": "New Name"}
+        )
+        listener = coordinator.async_add_listener.call_args.args[0]
+        listener()
+
+        self.assertEqual(device.model, "Linux")
+        self.assertEqual(device.name, "New Name")
+        self.assertEqual(device.sw_version, "1.2.3")

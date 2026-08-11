@@ -42,5 +42,174 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "agent_version": {
+        "name": "Agent Version"
+      },
+      "battery_level": {
+        "name": "Battery Level"
+      },
+      "battery_state": {
+        "name": "Battery State",
+        "state": {
+          "charging": "Charging",
+          "discharging": "Discharging",
+          "empty": "Empty",
+          "full": "Full",
+          "idle": "Idle",
+          "unknown": "Unknown"
+        }
+      },
+      "cpu_cores": {
+        "name": "CPU Cores"
+      },
+      "cpu_model": {
+        "name": "CPU Model"
+      },
+      "cpu_temperature": {
+        "name": "CPU Temperature"
+      },
+      "cpu_threads": {
+        "name": "CPU Threads"
+      },
+      "cpu_usage": {
+        "name": "CPU Usage"
+      },
+      "disk_io_utilisation": {
+        "name": "Disk I/O Utilisation"
+      },
+      "disk_read_await": {
+        "name": "Disk Read Await"
+      },
+      "disk_read_speed": {
+        "name": "Disk Read Speed"
+      },
+      "disk_read_time": {
+        "name": "Disk Read Time"
+      },
+      "disk_total": {
+        "name": "Disk Total"
+      },
+      "disk_usage": {
+        "name": "Disk Usage"
+      },
+      "disk_used": {
+        "name": "Disk Used"
+      },
+      "disk_weighted_io": {
+        "name": "Disk Weighted I/O"
+      },
+      "disk_write_await": {
+        "name": "Disk Write Await"
+      },
+      "disk_write_speed": {
+        "name": "Disk Write Speed"
+      },
+      "disk_write_time": {
+        "name": "Disk Write Time"
+      },
+      "filesystem_io_utilisation": {
+        "name": "{filesystem} I/O Utilisation"
+      },
+      "filesystem_read_await": {
+        "name": "{filesystem} Read Await"
+      },
+      "filesystem_read_speed": {
+        "name": "{filesystem} Read Speed"
+      },
+      "filesystem_read_time": {
+        "name": "{filesystem} Read Time"
+      },
+      "filesystem_total": {
+        "name": "{filesystem} Total"
+      },
+      "filesystem_usage": {
+        "name": "{filesystem} Usage"
+      },
+      "filesystem_used": {
+        "name": "{filesystem} Used"
+      },
+      "filesystem_weighted_io": {
+        "name": "{filesystem} Weighted I/O"
+      },
+      "filesystem_write_await": {
+        "name": "{filesystem} Write Await"
+      },
+      "filesystem_write_speed": {
+        "name": "{filesystem} Write Speed"
+      },
+      "filesystem_write_time": {
+        "name": "{filesystem} Write Time"
+      },
+      "gpu_memory_total": {
+        "name": "{gpu} Memory Total"
+      },
+      "gpu_memory_used": {
+        "name": "{gpu} Memory Used"
+      },
+      "gpu_package_power": {
+        "name": "{gpu} Package Power"
+      },
+      "gpu_power_draw": {
+        "name": "{gpu} Power Draw"
+      },
+      "gpu_usage": {
+        "name": "{gpu} Usage"
+      },
+      "kernel_version": {
+        "name": "Kernel Version"
+      },
+      "memory_buffer_cache": {
+        "name": "Memory Buffer/Cache"
+      },
+      "memory_total": {
+        "name": "Memory Total"
+      },
+      "memory_usage": {
+        "name": "Memory Usage"
+      },
+      "memory_used": {
+        "name": "Memory Used"
+      },
+      "memory_zfs_arc": {
+        "name": "Memory ZFS ARC"
+      },
+      "network_received_speed": {
+        "name": "Network Received Speed"
+      },
+      "network_sent_speed": {
+        "name": "Network Sent Speed"
+      },
+      "operating_system": {
+        "name": "Operating System"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "down": "Down",
+          "paused": "Paused",
+          "pending": "Pending",
+          "unknown": "Unknown",
+          "up": "Up"
+        }
+      },
+      "swap_total": {
+        "name": "Swap Total"
+      },
+      "swap_usage": {
+        "name": "Swap Usage"
+      },
+      "swap_used": {
+        "name": "Swap Used"
+      },
+      "temperature": {
+        "name": "Temperature {temperature}"
+      },
+      "uptime": {
+        "name": "Uptime"
+      }
+    }
   }
 }

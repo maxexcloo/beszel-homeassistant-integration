@@ -81,7 +81,7 @@ class BeszelApiClient:
                 },
             )
             if result.items:
-                return vars(result.items[0]).get("stats", {})
+                return vars(result.items[0]).get("stats")
             return None
         except ClientResponseError as err:
             if err.status in (401, 403):
