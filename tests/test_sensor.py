@@ -73,6 +73,48 @@ class BeszelSensorTests(unittest.IsolatedAsyncioTestCase):
             {"beszel_entry_system_status_status"},
         )
 
+    def test_data_rates_read_byte_counters(self):
+        """Byte counters are converted to megabytes per second."""
+        coordinator = MagicMock()
+        coordinator.config_entry_id = "entry"
+        coordinator.data = {
+            "system": {
+                "id": "system",
+                "info": {},
+                "name": "Server",
+                "stats": {"b": [2097152, 1048576], "dio": [524288, 262144]},
+                "status": "up",
+            }
+        }
+
+        sensors = _create_available_sensors(coordinator)
+        by_id = {sensor.unique_id: sensor for sensor in sensors}
+
+        self.assertEqual(by_id["beszel_entry_system_stats_ns"].native_value, 2.0)
+        self.assertEqual(by_id["beszel_entry_system_stats_nr"].native_value, 1.0)
+        self.assertEqual(by_id["beszel_entry_system_stats_dr"].native_value, 0.5)
+        self.assertEqual(by_id["beszel_entry_system_stats_dw"].native_value, 0.25)
+
+    def test_data_rates_fall_back_to_legacy_values(self):
+        """Legacy MB/s values are used when byte counters are absent."""
+        coordinator = MagicMock()
+        coordinator.config_entry_id = "entry"
+        coordinator.data = {
+            "system": {
+                "id": "system",
+                "info": {},
+                "name": "Server",
+                "stats": {"nr": 1.5, "ns": 2.5},
+                "status": "up",
+            }
+        }
+
+        sensors = _create_available_sensors(coordinator)
+        by_id = {sensor.unique_id: sensor for sensor in sensors}
+
+        self.assertEqual(by_id["beszel_entry_system_stats_ns"].native_value, 2.5)
+        self.assertEqual(by_id["beszel_entry_system_stats_nr"].native_value, 1.5)
+
     def test_new_metrics_are_discovered_on_later_data(self):
         """A later coordinator snapshot exposes newly reported metrics."""
         coordinator = MagicMock()

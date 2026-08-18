@@ -16,8 +16,10 @@ ATTR_THREADS = "t"
 ATTR_UPTIME = "u"
 
 # Beszel SystemStats fields
+ATTR_BANDWIDTH = "b"
 ATTR_BATTERY = "bat"
 ATTR_CPU_PERCENT = "cpu"
+ATTR_DISK_IO = "dio"
 ATTR_DISK_IO_STATS = "dios"
 ATTR_DISK_PERCENT = "dp"
 ATTR_DISK_READ_PS_MB = "dr"

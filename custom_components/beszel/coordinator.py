@@ -8,9 +8,40 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import BeszelApiAuthError
-from .const import DOMAIN
+from .const import (
+    ATTR_CORES,
+    ATTR_CPU_MODEL,
+    ATTR_KERNEL_VERSION,
+    ATTR_OS,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+# Beszel system_details fields mapped onto their legacy system info keys.
+_DETAILS_TO_INFO = {
+    "cores": ATTR_CORES,
+    "cpu": ATTR_CPU_MODEL,
+    "kernel": ATTR_KERNEL_VERSION,
+    "os": ATTR_OS,
+}
+
+
+def _mapping(value):
+    """Return a mapping or an empty mapping for unavailable data."""
+    return value if isinstance(value, dict) else {}
+
+
+def _merge_system_info(info, details):
+    """Merge static Beszel details into a system info mapping."""
+    merged = dict(_mapping(info))
+    for detail_key, info_key in _DETAILS_TO_INFO.items():
+        if info_key in merged:
+            continue
+        value = details.get(detail_key)
+        if value is not None and value != "":
+            merged[info_key] = value
+    return merged or None
 
 
 class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
@@ -51,8 +82,11 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
                     self.api_client.host,
                     system,
                 )
+            details_map = await self._fetch_system_details()
             tasks = [
-                self._fetch_individual_system_data(system)
+                self._fetch_individual_system_data(
+                    system, details_map.get(system["id"], {})
+                )
                 for system in systems_with_ids
             ]
 
@@ -75,7 +109,9 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
                     cached_data = (self.data or {}).get(system_id, {})
                     if not isinstance(cached_data, dict):
                         cached_data = {}
-                    info = system.get("info")
+                    info = _merge_system_info(
+                        system.get("info"), details_map.get(system_id, {})
+                    )
                     if info is None:
                         info = cached_data.get("info")
                     all_system_data[system_id] = {
@@ -101,14 +137,28 @@ class BeszelDataUpdateCoordinator(DataUpdateCoordinator):
                 f"Error communicating with Beszel Hub {self.api_client.host}: {err}"
             ) from err
 
-    async def _fetch_individual_system_data(self, system):
+    async def _fetch_system_details(self):
+        """Fetch static system details, tolerating hubs that lack them."""
+        try:
+            return await self.api_client.async_get_system_details()
+        except BeszelApiAuthError:
+            raise
+        except Exception as err:  # noqa: BLE001 - details are best-effort
+            _LOGGER.warning(
+                "Error fetching system details from Beszel Hub %s: %s",
+                self.api_client.host,
+                err,
+            )
+            return {}
+
+    async def _fetch_individual_system_data(self, system, details):
         """Fetch stats and 'info' for a single system."""
         system_id = system["id"]
         stats = await self.api_client.async_get_latest_system_stats(system_id)
 
         return {
             "id": system_id,
-            "info": system.get("info"),
+            "info": _merge_system_info(system.get("info"), details),
             "name": system.get("name", system_id),
             "stats": stats,
             "status": system.get("status", "unknown"),
