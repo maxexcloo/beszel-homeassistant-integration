@@ -80,3 +80,37 @@ class BeszelApiClientTests(unittest.IsolatedAsyncioTestCase):
                 await client.async_get_latest_system_stats("system")
 
         self.assertFalse(client._is_authenticated)
+
+    async def test_system_details_are_keyed_by_system(self):
+        """System details are returned keyed by their system identifier."""
+        records = [
+            SimpleNamespace(system="one", kernel="6.1"),
+            SimpleNamespace(system="two", kernel="5.15"),
+            SimpleNamespace(name="orphan"),
+        ]
+        collection = MagicMock()
+        collection.get_full_list.return_value = records
+        pocketbase = MagicMock()
+        pocketbase.collection.return_value = collection
+
+        with patch("custom_components.beszel.api.PocketBase", return_value=pocketbase):
+            client = BeszelApiClient("beszel.local", "user", "password")
+            client._ensure_auth = AsyncMock()
+            result = await client.async_get_system_details()
+
+        self.assertEqual(set(result), {"one", "two"})
+        self.assertEqual(result["one"]["kernel"], "6.1")
+
+    async def test_missing_system_details_collection_is_tolerated(self):
+        """Hubs without a system_details collection return no details."""
+        collection = MagicMock()
+        collection.get_full_list.side_effect = ClientResponseError(status=404)
+        pocketbase = MagicMock()
+        pocketbase.collection.return_value = collection
+
+        with patch("custom_components.beszel.api.PocketBase", return_value=pocketbase):
+            client = BeszelApiClient("beszel.local", "user", "password")
+            client._ensure_auth = AsyncMock()
+            result = await client.async_get_system_details()
+
+        self.assertEqual(result, {})

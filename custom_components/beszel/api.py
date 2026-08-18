@@ -91,6 +91,30 @@ class BeszelApiClient:
                 ) from err
             raise
 
+    async def async_get_system_details(self):
+        """Fetch static system details keyed by system ID."""
+        await self._ensure_auth()
+        try:
+            records = await asyncio.to_thread(
+                self._client.collection("system_details").get_full_list,
+            )
+        except ClientResponseError as err:
+            if err.status in (401, 403):
+                self._is_authenticated = False
+                raise BeszelApiAuthError(
+                    "Token likely expired, re-authentication needed"
+                ) from err
+            if err.status == 404:
+                return {}
+            raise
+        details = {}
+        for record in records:
+            fields = vars(record)
+            system_id = fields.get("system")
+            if system_id:
+                details[str(system_id)] = fields
+        return details
+
     async def async_get_systems(self):
         """Fetch all systems from the Beszel Hub."""
         await self._ensure_auth()

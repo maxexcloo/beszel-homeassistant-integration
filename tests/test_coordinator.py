@@ -23,6 +23,10 @@ class FakeApiClient:
             raise RuntimeError("stats unavailable")
         return {"cpu": 12.5}
 
+    async def async_get_system_details(self):
+        """Return no static system details by default."""
+        return {}
+
     async def async_get_systems(self):
         """Return one malformed and two valid systems."""
         return [
@@ -107,3 +111,62 @@ class BeszelDataUpdateCoordinatorTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(data["system"]["info"])
         self.assertIsNone(data["system"]["stats"])
+
+    async def test_system_details_merge_into_info(self):
+        """Static details populate the info mapping for newer hubs."""
+
+        class DetailedApi(FakeApiClient):
+            async def async_get_systems(self):
+                return [{"id": "system", "name": "Server", "status": "up"}]
+
+            async def async_get_system_details(self):
+                return {
+                    "system": {
+                        "cores": 4,
+                        "cpu": "ARM Cortex-A76",
+                        "kernel": "6.1.0-rpi8",
+                        "os": 0,
+                    }
+                }
+
+        coordinator = BeszelDataUpdateCoordinator(
+            FakeHomeAssistant(),
+            api_client=DetailedApi(),
+            config_entry_id="entry",
+            update_interval_seconds=60,
+        )
+
+        data = await coordinator._async_update_data()
+
+        self.assertEqual(data["system"]["info"]["c"], 4)
+        self.assertEqual(data["system"]["info"]["m"], "ARM Cortex-A76")
+        self.assertEqual(data["system"]["info"]["k"], "6.1.0-rpi8")
+        self.assertEqual(data["system"]["info"]["os"], 0)
+
+    async def test_info_fields_are_not_overridden_by_details(self):
+        """Existing info values win over the static details fallback."""
+
+        class DetailedApi(FakeApiClient):
+            async def async_get_systems(self):
+                return [
+                    {
+                        "id": "system",
+                        "name": "Server",
+                        "status": "up",
+                        "info": {"k": "legacy-kernel"},
+                    }
+                ]
+
+            async def async_get_system_details(self):
+                return {"system": {"kernel": "new-kernel"}}
+
+        coordinator = BeszelDataUpdateCoordinator(
+            FakeHomeAssistant(),
+            api_client=DetailedApi(),
+            config_entry_id="entry",
+            update_interval_seconds=60,
+        )
+
+        data = await coordinator._async_update_data()
+
+        self.assertEqual(data["system"]["info"]["k"], "legacy-kernel")
